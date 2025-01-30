@@ -7,17 +7,18 @@ function CreateFile() {
   const [saldoDia1, setSaldoDia1] = useState("");
   const [saldoDia2, setSaldoDia2] = useState("");
 
-  // Valores fixos
-  const cnpj = "44478623";
-  const conta1 = "3097000003";
-  const conta2 = "4193000009";
+  // Pegando valores do .env
+  const apiUrl = process.env.REACT_APP_API_URL;
+  const cnpj = process.env.REACT_APP_CNPJ;
+  const conta1 = process.env.REACT_APP_CONTA1;
+  const conta2 = process.env.REACT_APP_CONTA2;
 
   const handleCreateFile = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
 
     const data = {
-      cnpj, // CNPJ fixo
+      cnpj, // CNPJ fixo do .env
       contas: [
         { codigoConta: conta1, saldoDia: saldoDia1 },
         { codigoConta: conta2, saldoDia: saldoDia2 },
@@ -26,7 +27,7 @@ function CreateFile() {
     };
 
     try {
-      await axios.post("http://localhost:8000/files.php", data, {
+      await axios.post(`${apiUrl}/files.php`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -36,14 +37,16 @@ function CreateFile() {
       window.location.href = "/files";
     } catch (error) {
       console.error("Erro ao criar arquivo:", error);
-      alert("Erro ao criar arquivo. Tente novamente.");
+      alert("Erro ao criar arquivo. Já existe um arquivo ativo para essa data.");
     }
   };
 
   return (
     <div style={styles.container}>
       <Header />
-      <h1 style={styles.title}>Lançamento 4111</h1>
+      <h1 style={styles.title}>
+  Criar Documento 4111_{new Date(Date.now() - 86400000).toISOString().split('T')[0].replace(/-/g, '')}.xml
+</h1>
       <form onSubmit={handleCreateFile} style={styles.form}>
         <div style={styles.formGroup}>
           <label style={styles.label}>Tipo de Remessa</label>
@@ -54,7 +57,6 @@ function CreateFile() {
             required
           >
             <option value="I">I (Primeira remessa do documento)</option>
-            <option value="S">S (Substituir documento enviado e aceito)</option>
           </select>
         </div>
 
@@ -127,7 +129,7 @@ const styles = {
     color: "#FFFFFF",
   },
   inputDisabled: {
-    width: "100%",
+    width: "96.4%",
     padding: "10px",
     borderRadius: "5px",
     border: "1px solid #ddd",

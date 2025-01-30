@@ -3,6 +3,10 @@ import axios from "axios";
 import Header from "./Header";
 import Button from "@mui/material/Button";
 
+// Pegando variáveis do .env
+const apiUrl = process.env.REACT_APP_API_URL;
+const filesUrl = process.env.REACT_APP_FILES_URL || "/files";
+
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,7 +15,7 @@ function Login() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        "http://localhost:8000/auth.php",
+        `${apiUrl}/auth.php`,
         { email, password },
         {
           headers: {
@@ -25,7 +29,7 @@ function Login() {
       localStorage.setItem("token", response.data.token);
 
       alert("Login realizado com sucesso!");
-      window.location.href = "/files"; // Redireciona para a página de files
+      window.location.href = filesUrl; // Redireciona para a página de arquivos
     } catch (error) {
       console.error("Erro no login:", error.response?.data || error.message);
       alert("Login falhou! Verifique suas credenciais.");
@@ -38,7 +42,7 @@ function Login() {
         <Header />
       </div>
       <div style={styles.loginBox}>
-        <h1 style={styles.title}>Bem-vindo!</h1>
+        <h1 style={styles.title}>Lançamentos Contábeis!</h1>
         <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"

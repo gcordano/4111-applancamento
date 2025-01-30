@@ -1,7 +1,14 @@
 <?php
 require 'db.php';
+require 'vendor/autoload.php';
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
+use Dotenv\Dotenv;
+
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Configuração de CORS
+header("Access-Control-Allow-Origin: " . $_ENV['FRONTEND_ORIGIN']);
 header("Access-Control-Allow-Methods: POST");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 
@@ -29,24 +36,26 @@ if (!$file) {
 
 // Caminho do script Python
 $pythonScript = __DIR__ . "/transmit.py";
-$caminhoArquivo = __DIR__ . "/" . $file['name']; // Caminho completo do arquivo XML
+$caminhoArquivo = __DIR__ . "/" . $file['name']; // Caminho do XML
 
-// Dados para autenticação e certificado
-$usuario = "444920001.S-DEVHOMOL";
-$senha = "dv527atc";
-$certificado = __DIR__ . "/certificado.pem"; // Certificado no servidor
-$url = "https://sta-h.bcb.gov.br/api/exemplo";
+// Carregar credenciais do .env
+$usuario = $_ENV['API_USER'];
+$senha = $_ENV['API_PASSWORD'];
+$certificado = __DIR__ . "/" . $_ENV['API_CERTIFICATE']; 
+$url = $_ENV['API_URL'];
 
 // Montar o comando para executar o script Python
 $command = escapeshellcmd("python3 $pythonScript \"$caminhoArquivo\" \"$url\" \"$usuario\" \"$senha\" \"$certificado\"");
 $output = shell_exec($command);
 
-// Retornar resposta
-if ($output) {
-    http_response_code(200);
-    echo json_encode(["message" => "Arquivo $fileId transmitido com sucesso", "output" => $output]);
-} else {
+// Verifica se houve erro na execução
+if ($output === null) {
     http_response_code(500);
-    echo json_encode(["message" => "Erro ao transmitir o arquivo"]);
+    echo json_encode(["message" => "Erro ao executar script Python"]);
+    exit;
 }
+
+// Retornar resposta
+http_response_code(200);
+echo json_encode(["message" => "Arquivo transmitido com sucesso", "output" => $output]);
 ?>

@@ -1,12 +1,21 @@
 <?php
 // Incluindo a conexão com o banco de dados
 require_once 'db.php';
+require_once __DIR__ . '/vendor/autoload.php'; // Autoloader do Composer
 
+use Dotenv\Dotenv;
+
+// Carrega o .env
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Configuração dinâmica de CORS
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Origin: http://localhost:3000"); // Permite requisições do frontend
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS"); // Métodos permitidos
-header("Access-Control-Allow-Headers: Content-Type, Authorization"); // Cabeçalhos permitidos
-header("Access-Control-Allow-Credentials: true"); // Permite envio de cookies ou autenticação (opcional)
+header("Access-Control-Allow-Origin: " . $_ENV['FRONTEND_ORIGIN']);
+header("Access-Control-Allow-Methods: " . $_ENV['ALLOWED_METHODS']);
+header("Access-Control-Allow-Headers: " . $_ENV['ALLOWED_HEADERS']);
+header("Access-Control-Allow-Credentials: true");
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
@@ -83,3 +92,4 @@ switch ($path) {
         echo json_encode(["message" => "Endpoint não encontrado"]);
         break;
 }
+?>

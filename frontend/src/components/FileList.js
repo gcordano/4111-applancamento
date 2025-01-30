@@ -3,6 +3,11 @@ import axios from "axios";
 import Header from "./Header";
 import { Card, CardContent, CardActions, Button, Typography, Grid, Stack } from "@mui/material";
 
+// Pegando variáveis do .env
+const apiUrl = process.env.REACT_APP_API_URL;
+const createUrl = process.env.REACT_APP_CREATE_URL || "/create";
+const editUrl = process.env.REACT_APP_EDIT_URL || "/edit";
+
 function FileList() {
   const [files, setFiles] = useState([]);
 
@@ -17,7 +22,7 @@ function FileList() {
 
     const fetchFiles = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/files.php", {
+        const response = await axios.get(`${apiUrl}/files.php`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -33,18 +38,12 @@ function FileList() {
     fetchFiles();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    alert("Sessão encerrada com sucesso!");
-    window.location.href = "/";
-  };
-
   const handleDownload = (id) => {
-    window.open(`http://localhost:8000/files.php?download=1&id=${id}`);
+    window.open(`${apiUrl}/files.php?download=1&id=${id}`);
   };
 
   const handleCreateNewFile = () => {
-    window.location.href = "/create";
+    window.location.href = createUrl;
   };
 
   const handleDelete = async (id) => {
@@ -52,7 +51,7 @@ function FileList() {
     if (confirm) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete("http://localhost:8000/files.php", {
+        await axios.delete(`${apiUrl}/files.php`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -69,13 +68,13 @@ function FileList() {
   };
 
   const handleEdit = (id) => {
-    window.location.href = `/edit/${id}`;
+    window.location.href = `${editUrl}/${id}`;
   };
 
   const handleTransmit = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.post("http://localhost:8000/transmit.php", { id }, {
+      const response = await axios.post(`${apiUrl}/transmit.php`, { id }, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -95,19 +94,10 @@ function FileList() {
 
   return (
     <div style={styles.container}>
-      <Header />
-      <div style={styles.headerContainer}>
-        <Typography variant="h4" sx={{ textAlign: "center", color: "#FFFFFF", marginBottom: 2 }}>
-          Listagem 4111
-        </Typography>
-      </div>
-
+      <Header showTitle={true} />
       <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ marginBottom: 2 }}>
         <Button variant="contained" color="success" onClick={handleCreateNewFile}>
-          Lançar Novo Arquivo
-        </Button>
-        <Button variant="contained" color="error" onClick={handleLogout}>
-          Logout
+          Novo Arquivo
         </Button>
       </Stack>
 

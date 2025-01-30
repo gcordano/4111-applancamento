@@ -1,18 +1,24 @@
 <?php
 require 'db.php';
+require_once __DIR__ . '/vendor/autoload.php'; // Autoloader do Composer
 
-// Configuração de CORS
-header("Access-Control-Allow-Origin: http://localhost:3000"); // Permite conexões do frontend
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS"); // Permite os métodos necessários
-header("Access-Control-Allow-Headers: Content-Type, Authorization"); // Permite os cabeçalhos necessários
-header("Access-Control-Allow-Credentials: true"); // Permite o envio de cookies ou credenciais
+use Dotenv\Dotenv;
+
+// Carrega o .env
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Configuração dinâmica de CORS
+header("Access-Control-Allow-Origin: " . $_ENV['FRONTEND_ORIGIN']);
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Access-Control-Allow-Credentials: true");
 
 // Trata requisições OPTIONS (preflight)
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents('php://input'), true);
@@ -25,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($user) {
-        // Compara a senha diretamente
+        // Comparação da senha diretamente (idealmente, use password_hash)
         if ($password === $user['password']) {
             echo json_encode(['token' => base64_encode($user['id'])]);
         } else {

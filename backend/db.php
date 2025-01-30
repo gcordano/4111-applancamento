@@ -1,8 +1,16 @@
 <?php
-$host = "127.0.0.1";
-$dbname = "controle_xml";
-$user = "root";
-$password = "rootpassword";
+require_once __DIR__ . '/vendor/autoload.php'; // Carrega o autoloader do Composer
+
+use Dotenv\Dotenv;
+
+$dotenv = Dotenv::createImmutable(__DIR__); // Carrega o .env
+$dotenv->load();
+
+// Obtém variáveis do .env
+$host = $_ENV['DB_HOST'];
+$dbname = $_ENV['DB_NAME'];
+$user = $_ENV['DB_USER'];
+$password = $_ENV['DB_PASSWORD'];
 
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $user, $password);

@@ -1,8 +1,15 @@
 <?php
 require 'db.php';
+require_once __DIR__ . '/vendor/autoload.php'; // Autoloader do Composer
+
+use Dotenv\Dotenv;
+
+// Carrega o .env
+$dotenv = Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
 // Configuração de CORS
-header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Origin: " . $_ENV['FRONTEND_ORIGIN']);
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Access-Control-Allow-Credentials: true");
@@ -14,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Lógica para listar todos os arquivos
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['download']) && !isset($_GET['id'])) {
-    $stmt = $pdo->query("SELECT id, name FROM files");
+    $stmt = $pdo->query("SELECT id, name FROM files WHERE status = 1");
     $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
     echo json_encode($files);
     exit;
@@ -24,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['download']) && !isset(
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && !isset($_GET['download'])) {
     $fileId = $_GET['id'];
 
-    $stmt = $pdo->prepare("SELECT * FROM files WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM files WHERE id = ? AND status = 1");
     $stmt->execute([$fileId]);
     $file = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -46,14 +53,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contas = $data['contas'];
     $tipoRemessa = $data['tipoRemessa'];
 
-    $dataBase = date('Ymd', strtotime("-1 day"));
-    $fileName = "4111_" . $dataBase . ".xml";
+    // Definir a data do dia anterior no formato correto (YYYY-MM-DD)
+    $dataBase = date('Y-m-d', strtotime("-1 day"));
+    $fileName = "4111_" . str_replace("-", "", $dataBase) . ".xml"; // Exemplo: 4111_20250128.xml
 
-    $stmt = $pdo->prepare("INSERT INTO files (name, content) VALUES (?, ?)");
+    // 🔍 Verificar se já existe um arquivo para essa data com status 1
+    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM files WHERE JSON_UNQUOTE(JSON_EXTRACT(content, '$.dataBase')) = ? AND status = 1");
+    $stmt->execute([$dataBase]);
+    $existingFile = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($existingFile['total'] > 0) {
+        http_response_code(409); // Código 409 = Conflito
+        echo json_encode(["message" => "Já existe um arquivo ativo para essa data."]);
+        exit;
+    }
+
+    // Criar o novo arquivo se não houver conflito
+    $stmt = $pdo->prepare("INSERT INTO files (name, content, status) VALUES (?, ?, 1)");
     $content = json_encode([
         "codigoDocumento" => "4111",
         "cnpj" => $cnpj,
-        "dataBase" => $dataBase,
+        "dataBase" => $dataBase, 
         "tipoRemessa" => $tipoRemessa,
         "contas" => $contas,
     ]);
@@ -61,6 +81,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     http_response_code(201);
     echo json_encode(["message" => "Arquivo criado com sucesso", "id" => $pdo->lastInsertId()]);
+    exit;
+}
+
+
+// Lógica para editar um arquivo
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['id'])) {
+    $fileId = intval($_GET['id']);
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    if (!isset($data['cnpj'], $data['contas'], $data['tipoRemessa'])) {
+        http_response_code(400);
+        echo json_encode(["message" => "Dados insuficientes para atualização"]);
+        exit;
+    }
+
+    // Buscar a dataBase existente para manter a original e não sobrescrever
+    $stmt = $pdo->prepare("SELECT content FROM files WHERE id = ?");
+    $stmt->execute([$fileId]);
+    $existingFile = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$existingFile) {
+        http_response_code(404);
+        echo json_encode(["message" => "Arquivo não encontrado"]);
+        exit;
+    }
+
+    $existingContent = json_decode($existingFile['content'], true);
+    $dataBase = $existingContent['dataBase'] ?? date('Y-m-d'); // Mantém a dataBase original
+
+    $content = json_encode([
+        "codigoDocumento" => "4111",
+        "cnpj" => $data['cnpj'],
+        "dataBase" => $dataBase, // Mantendo a data correta
+        "tipoRemessa" => $data['tipoRemessa'],
+        "contas" => $data['contas'],
+    ]);
+
+    $stmt = $pdo->prepare("UPDATE files SET content = ? WHERE id = ?");
+    $stmt->execute([$content, $fileId]);
+
+    if ($stmt->rowCount() > 0) {
+        http_response_code(200);
+        echo json_encode(["message" => "Arquivo atualizado com sucesso"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["message" => "Nenhuma alteração foi feita"]);
+    }
     exit;
 }
 
@@ -133,37 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['download'])) {
     }
 }
 
-// Lógica para editar um arquivo
-if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['id'])) {
-    $fileId = intval($_GET['id']);
-    $data = json_decode(file_get_contents("php://input"), true);
-
-    if (!isset($data['cnpj'], $data['contas'], $data['tipoRemessa'])) {
-        http_response_code(400);
-        echo json_encode(["message" => "Dados insuficientes para atualização"]);
-        exit;
-    }
-
-    $content = json_encode([
-        "codigoDocumento" => "4111",
-        "cnpj" => $data['cnpj'],
-        "tipoRemessa" => $data['tipoRemessa'],
-        "contas" => $data['contas'],
-    ]);
-
-    $stmt = $pdo->prepare("UPDATE files SET content = ? WHERE id = ?");
-    $stmt->execute([$content, $fileId]);
-
-    if ($stmt->rowCount() > 0) {
-        http_response_code(200);
-        echo json_encode(["message" => "Arquivo atualizado com sucesso"]);
-    } else {
-        http_response_code(500);
-        echo json_encode(["message" => "Nenhuma alteração foi feita"]);
-    }
-    exit;
-}
-
 // Lógica para deletar um arquivo
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $data = json_decode(file_get_contents("php://input"), true);
@@ -188,8 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
         exit;
     }
 
-    // Deleta o arquivo do banco de dados
-    $stmt = $pdo->prepare("DELETE FROM files WHERE id = ?");
+    // Deleta o arquivo do frontend
+    $stmt = $pdo->prepare("UPDATE files SET status = 0 WHERE id = ?");
     $stmt->execute([$fileId]);
 
     if ($stmt->rowCount() > 0) {
@@ -217,8 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['transmit'])) {
         exit;
     }
 
-    // Caminho do script Python
-    $pythonScript = "./transmitir_arquivo.py";
+    // Caminho do script Python vindo do .env
+    $pythonScript = $_ENV['PYTHON_SCRIPT_PATH'];
 
     // Comando para executar o script Python
     $command = escapeshellcmd("python3 $pythonScript $fileId");
