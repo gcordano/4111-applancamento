@@ -61,7 +61,6 @@ function EditFile() {
           "Content-Type": "application/json",
         },
       });
-      alert("Arquivo atualizado com sucesso!");
       window.location.href = "/files";
     } catch (error) {
       console.error("Erro ao atualizar arquivo:", error);

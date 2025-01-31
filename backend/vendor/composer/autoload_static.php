@@ -62,6 +62,10 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
             'Gustavo\\Backend\\' => 16,
             'GrahamCampbell\\ResultType\\' => 26,
         ),
+        'F' => 
+        array (
+            'Firebase\\JWT\\' => 13,
+        ),
         'E' => 
         array (
             'Elastic\\Transport\\' => 18,
@@ -174,6 +178,10 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
         'GrahamCampbell\\ResultType\\' => 
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
+        ),
+        'Firebase\\JWT\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
         'Elastic\\Transport\\' => 
         array (

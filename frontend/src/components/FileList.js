@@ -22,21 +22,35 @@ function FileList() {
 
     const fetchFiles = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/files.php`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setFiles(response.data);
+          const response = await axios.get(`${apiUrl}/files.php`, {
+              headers: {
+                  Authorization: `Bearer ${token}`,
+              },
+          });
+  
+          console.log("Dados recebidos da API:", response.data); // Debug
+  
+          if (Array.isArray(response.data)) {
+              setFiles(response.data); // Apenas define se for um array
+          } else {
+              setFiles([]); // Evita erro ao tentar acessar 'map'
+          }
+  
       } catch (error) {
-        console.error("Erro ao buscar arquivos:", error);
-        alert("Erro ao carregar arquivos. Faça login novamente.");
-        window.location.href = "/";
+          console.error("Erro ao buscar arquivos:", error);
+          alert("Erro ao carregar arquivos. Faça login novamente.");
+          window.location.href = "/";
       }
-    };
+  };
+  
 
-    fetchFiles();
-  }, []);
+    fetchFiles()
+    .then((response) => {
+      console.log("Resposta da API:", response.data); // Exibe a resposta da API no console
+      setFiles(response.data);
+    })
+    .catch((error) => console.error("Erro ao buscar arquivos:", error));
+}, []);
 
   const handleDownload = (id) => {
     window.open(`${apiUrl}/files.php?download=1&id=${id}`);
@@ -102,7 +116,7 @@ function FileList() {
       </Stack>
 
       <Grid container spacing={2}>
-        {files.map((file) => (
+      {Array.isArray(files) && files.map((file) => (
           <Grid item xs={12} sm={6} md={4} key={file.id}>
             <Card sx={{ backgroundColor: "#444B52", color: "#FFFFFF" }}>
               <CardContent>

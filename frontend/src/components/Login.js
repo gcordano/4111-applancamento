@@ -15,7 +15,7 @@ function Login() {
     e.preventDefault();
     try {
       const response = await axios.post(
-        `${apiUrl}/auth.php`,
+        `${apiUrl}/auth.php?login`,
         { email, password },
         {
           headers: {
@@ -28,7 +28,6 @@ function Login() {
       // Salva o token no Local Storage
       localStorage.setItem("token", response.data.token);
 
-      alert("Login realizado com sucesso!");
       window.location.href = filesUrl; // Redireciona para a página de arquivos
     } catch (error) {
       console.error("Erro no login:", error.response?.data || error.message);

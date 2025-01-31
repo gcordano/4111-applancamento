@@ -18,7 +18,7 @@ $data = json_decode(file_get_contents("php://input"), true);
 if (!isset($data['id'])) {
     http_response_code(400);
     echo json_encode(["message" => "ID do arquivo não fornecido"]);
-    exit;
+    return;
 }
 
 $fileId = intval($data['id']);
@@ -31,7 +31,7 @@ $file = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$file) {
     http_response_code(404);
     echo json_encode(["message" => "Arquivo não encontrado"]);
-    exit;
+    return;
 }
 
 // Caminho do script Python
@@ -52,7 +52,7 @@ $output = shell_exec($command);
 if ($output === null) {
     http_response_code(500);
     echo json_encode(["message" => "Erro ao executar script Python"]);
-    exit;
+    return;
 }
 
 // Retornar resposta

@@ -31,6 +31,7 @@ return array(
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
     'Gustavo\\Backend\\' => array($baseDir . '/src'),
     'GrahamCampbell\\ResultType\\' => array($vendorDir . '/graham-campbell/result-type/src'),
+    'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
     'Elastic\\Transport\\' => array($vendorDir . '/elastic/transport/src'),
     'Elastic\\Elasticsearch\\' => array($vendorDir . '/elasticsearch/elasticsearch/src'),
     'Dotenv\\' => array($vendorDir . '/vlucas/phpdotenv/src'),

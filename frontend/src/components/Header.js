@@ -18,7 +18,6 @@ function Header({ showTitle }) {
   // Função de logout
   const handleLogout = () => {
     localStorage.removeItem("token");
-    alert("Sessão encerrada com sucesso!");
     window.location.href = logoutUrl;
   };
 

@@ -1,10 +1,9 @@
 <?php
-require 'db.php';
+require_once __DIR__ . "/Config/db.php";
 require_once __DIR__ . '/vendor/autoload.php'; // Autoloader do Composer
 
 use Dotenv\Dotenv;
 
-// Carrega o .env
 $dotenv = Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
@@ -13,122 +12,135 @@ header("Access-Control-Allow-Origin: " . $_ENV['FRONTEND_ORIGIN']);
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Access-Control-Allow-Credentials: true");
+header("Content-Type: application/json; charset=UTF-8");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit;
+    return;
+
 }
 
-// Lógica para listar todos os arquivos
+// 🔹 Obtendo a conexão Singleton do banco
+$db = Database::getInstance()->getConnection();
+ 
+// 🔹 Listar todos os arquivos
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['download']) && !isset($_GET['id'])) {
-    $stmt = $pdo->query("SELECT id, name FROM files WHERE status = 1");
-    $files = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $db->query("SELECT id, name FROM files WHERE status = 'True'");
+    $files = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     echo json_encode($files);
-    exit;
+    return;
 }
 
-// Lógica para buscar um arquivo específico por ID
+// 🔹 Buscar um arquivo específico por ID
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && !isset($_GET['download'])) {
-    $fileId = $_GET['id'];
+    $fileId = intval($_GET['id']);
 
-    $stmt = $pdo->prepare("SELECT * FROM files WHERE id = ? AND status = 1");
+    $stmt = $db->prepare("SELECT * FROM files WHERE id = ? AND status = 'True'");
     $stmt->execute([$fileId]);
     $file = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($file) {
         $file['content'] = json_decode($file['content'], true);
         echo json_encode($file);
-        exit;
     } else {
         http_response_code(404);
         echo json_encode(["message" => "Arquivo não encontrado"]);
-        exit;
     }
+    return;
 }
 
-// Lógica para criar novos arquivos
+// 🔹 Criar um novo arquivo
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents("php://input"), true);
-    $cnpj = $data['cnpj'];
-    $contas = $data['contas'];
-    $tipoRemessa = $data['tipoRemessa'];
+    
+    if (!$data || !isset($data['cnpj'], $data['contas'], $data['tipoRemessa'])) {
+        http_response_code(400);
+        echo json_encode(["message" => "Dados inválidos"]);
+        return;
+    }
 
-    // Definir a data do dia anterior no formato correto (YYYY-MM-DD)
-    $dataBase = date('Y-m-d', strtotime("-1 day"));
-    $fileName = "4111_" . str_replace("-", "", $dataBase) . ".xml"; // Exemplo: 4111_20250128.xml
+    // 🔹 Obtém o dia da semana atual
+    $hoje = date('Y-m-d'); // Data atual
+    $diaSemana = date('N'); // 1 = segunda-feira, 2 = terça, ..., 5 = sexta
 
-    // 🔍 Verificar se já existe um arquivo para essa data com status 1
-    $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM files WHERE JSON_UNQUOTE(JSON_EXTRACT(content, '$.dataBase')) = ? AND status = 1");
+    if ($diaSemana == 1) { 
+        // 🔹 Se for SEGUNDA-FEIRA, usa a data da última SEXTA-FEIRA
+        $dataBase = date('Y-m-d', strtotime("-3 days", strtotime($hoje)));
+    } else { 
+        // 🔹 Para os demais dias (terça a sexta), gera o arquivo referente ao dia anterior
+        $dataBase = date('Y-m-d', strtotime("-1 day", strtotime($hoje)));
+    }
+
+    $fileName = "4111_" . str_replace("-", "", $dataBase) . ".xml";
+
+    // 🔹 Verifica se já existe um arquivo ativo para essa data
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM files WHERE content::jsonb ->> 'dataBase' = ? AND status = 'True'");
     $stmt->execute([$dataBase]);
     $existingFile = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($existingFile['total'] > 0) {
-        http_response_code(409); // Código 409 = Conflito
+        http_response_code(409);
         echo json_encode(["message" => "Já existe um arquivo ativo para essa data."]);
-        exit;
+        return;
     }
 
-    // Criar o novo arquivo se não houver conflito
-    $stmt = $pdo->prepare("INSERT INTO files (name, content, status) VALUES (?, ?, 1)");
+    // 🔹 Criação do conteúdo do arquivo
     $content = json_encode([
         "codigoDocumento" => "4111",
-        "cnpj" => $cnpj,
-        "dataBase" => $dataBase, 
-        "tipoRemessa" => $tipoRemessa,
-        "contas" => $contas,
+        "cnpj" => $data['cnpj'],
+        "dataBase" => $dataBase,
+        "tipoRemessa" => $data['tipoRemessa'],
+        "contas" => $data['contas'],
     ]);
+
+    // 🔹 Insere no banco
+    $stmt = $db->prepare("INSERT INTO files (name, content, status) VALUES (?, ?, 'True')");
     $stmt->execute([$fileName, $content]);
 
     http_response_code(201);
-    echo json_encode(["message" => "Arquivo criado com sucesso", "id" => $pdo->lastInsertId()]);
-    exit;
+    echo json_encode(["message" => "Arquivo criado com sucesso", "id" => $db->lastInsertId(), "dataBase" => $dataBase]);
+    return;
 }
 
 
-// Lógica para editar um arquivo
+// 🔹 Editar um arquivo
 if ($_SERVER['REQUEST_METHOD'] === 'PUT' && isset($_GET['id'])) {
     $fileId = intval($_GET['id']);
     $data = json_decode(file_get_contents("php://input"), true);
 
     if (!isset($data['cnpj'], $data['contas'], $data['tipoRemessa'])) {
-        http_response_code(400);
+        return http_response_code(400);
         echo json_encode(["message" => "Dados insuficientes para atualização"]);
-        exit;
+        return;
     }
 
-    // Buscar a dataBase existente para manter a original e não sobrescrever
-    $stmt = $pdo->prepare("SELECT content FROM files WHERE id = ?");
+    $stmt = $db->prepare("SELECT content FROM files WHERE id = ?");
     $stmt->execute([$fileId]);
     $existingFile = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$existingFile) {
-        http_response_code(404);
+        return http_response_code(404);
         echo json_encode(["message" => "Arquivo não encontrado"]);
-        exit;
+        return;
     }
 
     $existingContent = json_decode($existingFile['content'], true);
-    $dataBase = $existingContent['dataBase'] ?? date('Y-m-d'); // Mantém a dataBase original
+    $dataBase = $existingContent['dataBase'] ?? date('Y-m-d');
 
     $content = json_encode([
         "codigoDocumento" => "4111",
         "cnpj" => $data['cnpj'],
-        "dataBase" => $dataBase, // Mantendo a data correta
+        "dataBase" => $dataBase,
         "tipoRemessa" => $data['tipoRemessa'],
         "contas" => $data['contas'],
     ]);
 
-    $stmt = $pdo->prepare("UPDATE files SET content = ? WHERE id = ?");
+    $stmt = $db->prepare("UPDATE files SET content = ? WHERE id = ?");
     $stmt->execute([$content, $fileId]);
 
-    if ($stmt->rowCount() > 0) {
-        http_response_code(200);
-        echo json_encode(["message" => "Arquivo atualizado com sucesso"]);
-    } else {
-        http_response_code(500);
-        echo json_encode(["message" => "Nenhuma alteração foi feita"]);
-    }
-    exit;
+    http_response_code(200);
+    echo json_encode(["message" => "Arquivo atualizado com sucesso"]);
+    return;
 }
 
 // Lógica para download de arquivos em XML
@@ -136,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['download'])) {
     $fileId = $_GET['id'];
 
     // Busca os dados do arquivo no banco
-    $stmt = $pdo->prepare("SELECT name, content FROM files WHERE id = ?");
+    $stmt = $db->prepare("SELECT name, content FROM files WHERE id = ?");
     $stmt->execute([$fileId]);
     $file = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -200,76 +212,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['download'])) {
     }
 }
 
-// Lógica para deletar um arquivo
+// 🔹 Deletar um arquivo (soft delete)
 if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
     $data = json_decode(file_get_contents("php://input"), true);
-
-    // Verifica se o ID foi enviado
     if (!isset($data['id'])) {
         http_response_code(400);
         echo json_encode(["message" => "ID do arquivo não fornecido"]);
-        exit;
+        return;
     }
 
-    $fileId = intval($data['id']); // Converte o ID para inteiro
-
-    // Verifica se o arquivo existe no banco de dados
-    $stmt = $pdo->prepare("SELECT * FROM files WHERE id = ?");
-    $stmt->execute([$fileId]);
-    $file = $stmt->fetch();
-
-    if (!$file) {
-        http_response_code(404);
-        echo json_encode(["message" => "Arquivo não encontrado"]);
-        exit;
-    }
-
-    // Deleta o arquivo do frontend
-    $stmt = $pdo->prepare("UPDATE files SET status = 0 WHERE id = ?");
+    $fileId = intval($data['id']);
+    $stmt = $db->prepare("UPDATE files SET status = 'False' WHERE id = ?");
     $stmt->execute([$fileId]);
 
-    if ($stmt->rowCount() > 0) {
-        http_response_code(200);
-        echo json_encode(["message" => "Arquivo deletado com sucesso"]);
-    } else {
-        http_response_code(500);
-        echo json_encode(["message" => "Erro ao deletar arquivo"]);
-    }
-    exit;
+    http_response_code(200);
+    echo json_encode(["message" => "Arquivo deletado com sucesso"]);
+    return;
 }
 
-// Lógica para transmitir um arquivo
+// 🔹 Transmitir um arquivo via script Python
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_GET['transmit'])) {
-    $fileId = intval($_POST['id']);
-
-    // Verifica se o arquivo existe
-    $stmt = $pdo->prepare("SELECT * FROM files WHERE id = ?");
-    $stmt->execute([$fileId]);
-    $file = $stmt->fetch();
-
-    if (!$file) {
-        http_response_code(404);
-        echo json_encode(["message" => "Arquivo não encontrado"]);
-        exit;
+    $data = json_decode(file_get_contents("php://input"), true);
+    if (!isset($data['id'])) {
+        http_response_code(400);
+        echo json_encode(["message" => "ID não fornecido"]);
+        return;
     }
 
-    // Caminho do script Python vindo do .env
+    $fileId = intval($data['id']);
     $pythonScript = $_ENV['PYTHON_SCRIPT_PATH'];
-
-    // Comando para executar o script Python
     $command = escapeshellcmd("python3 $pythonScript $fileId");
     $output = shell_exec($command);
 
     if ($output === null) {
         http_response_code(500);
         echo json_encode(["message" => "Erro ao transmitir o arquivo"]);
-        exit;
+        return;
     }
 
     http_response_code(200);
     echo json_encode(["message" => "Arquivo transmitido com sucesso", "output" => $output]);
-    exit;
+    return;
 }
 
-
+// Caso a requisição não seja válida
+http_response_code(400);
+echo json_encode(["message" => "Requisição inválida"]);
+return;
 ?>
