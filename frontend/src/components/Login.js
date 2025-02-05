@@ -1,38 +1,39 @@
-import React, { useState } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { loginUser } from "../api/api"; // Importando a função de login
 import Header from "./Header";
 import Button from "@mui/material/Button";
 
-// Pegando variáveis do .env
-const apiUrl = process.env.REACT_APP_API_URL;
-const filesUrl = process.env.REACT_APP_FILES_URL || "/files";
-
-function Login() {
+function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // 🔹 Verifica se o usuário já está autenticado
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      setIsAuthenticated(true);
+      navigate("/files");
+    }
+  }, [setIsAuthenticated, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const response = await axios.post(
-        `${apiUrl}/auth.php?login`,
-        { email, password },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+    setLoading(true);
+  
+    const response = await loginUser(email, password);
 
-      console.log("Resposta do backend:", response.data);
-      // Salva o token no Local Storage
-      localStorage.setItem("token", response.data.token);
-
-      window.location.href = filesUrl; // Redireciona para a página de arquivos
-    } catch (error) {
-      console.error("Erro no login:", error.response?.data || error.message);
-      alert("Login falhou! Verifique suas credenciais.");
+    if (response?.token) {
+      localStorage.setItem("token", response.token);
+      setIsAuthenticated(true);
+      navigate("/files");
+    } else {
+      alert(response?.message || "Erro ao fazer login.");
     }
+  
+    setLoading(false);
   };
 
   return (
@@ -41,7 +42,7 @@ function Login() {
         <Header />
       </div>
       <div style={styles.loginBox}>
-        <h1 style={styles.title}>Lançamentos Contábeis!</h1>
+        <h1 style={styles.title}>Lançamentos Contábeis</h1>
         <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
@@ -59,8 +60,14 @@ function Login() {
             style={styles.input}
             required
           />
-          <Button type="submit" variant="contained" color="success" style={styles.loginButton}>
-            Login
+          <Button
+            type="submit"
+            variant="contained"
+            color="success"
+            style={styles.loginButton}
+            disabled={loading}
+          >
+            {loading ? "Aguarde..." : "Login"}
           </Button>
         </form>
       </div>

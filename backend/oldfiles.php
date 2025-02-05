@@ -22,6 +22,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // 🔹 Obtendo a conexão Singleton do banco
 $db = Database::getInstance()->getConnection();
+
+// 🔹 1️⃣ **GET para obter apenas a dataBase (para o React usar no título)**
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['getDate'])) {
+    // 🔹 Obtém a data correta com base no dia da semana
+    $hoje = date('Y-m-d'); 
+    $diaSemana = date('N'); // 1 = segunda-feira, ..., 5 = sexta
+    
+    if ($diaSemana == 1) { 
+        $dataBase = date('Y-m-d', strtotime("-3 days", strtotime($hoje))); // Segunda-feira → Sexta-feira anterior
+    } else { 
+        $dataBase = date('Y-m-d', strtotime("-1 day", strtotime($hoje))); // Terça a sexta → Dia anterior
+    }
+
+    echo json_encode(["dataBase" => $dataBase]);
+    return;
+}
  
 // 🔹 Listar todos os arquivos
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && !isset($_GET['download']) && !isset($_GET['id'])) {
@@ -49,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id']) && !isset($_GET['
     return;
 }
 
-// 🔹 Criar um novo arquivo
+// 🔹 3️⃣ **POST para criar um novo arquivo**
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = json_decode(file_get_contents("php://input"), true);
     
@@ -59,16 +75,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return;
     }
 
-    // 🔹 Obtém o dia da semana atual
-    $hoje = date('Y-m-d'); // Data atual
-    $diaSemana = date('N'); // 1 = segunda-feira, 2 = terça, ..., 5 = sexta
-
+    // 🔹 Obtém a data correta com base no dia da semana
+    $hoje = date('Y-m-d'); 
+    $diaSemana = date('N'); // 1 = segunda-feira, ..., 5 = sexta
+    
     if ($diaSemana == 1) { 
-        // 🔹 Se for SEGUNDA-FEIRA, usa a data da última SEXTA-FEIRA
-        $dataBase = date('Y-m-d', strtotime("-3 days", strtotime($hoje)));
+        $dataBase = date('Y-m-d', strtotime("-3 days", strtotime($hoje))); // Segunda-feira → Sexta-feira anterior
     } else { 
-        // 🔹 Para os demais dias (terça a sexta), gera o arquivo referente ao dia anterior
-        $dataBase = date('Y-m-d', strtotime("-1 day", strtotime($hoje)));
+        $dataBase = date('Y-m-d', strtotime("-1 day", strtotime($hoje))); // Terça a sexta → Dia anterior
+    }
+
+    $fileName = "4111_" . str_replace("-", "", $dataBase) . ".xml";
+
+    // 🔹 Verifica se já existe um arquivo ativo para essa data
+    $stmt = $db->prepare("SELECT COUNT(*) as total FROM files WHERE content::jsonb ->> 'dataBase' = ? AND status = 'True'");
+    $stmt->execute([$dataBase]);
+    $existingFile = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($existingFile['total'] > 0) {
+        http_response_code(409);
+        echo json_encode(["message" => "Já existe um arquivo ativo para essa data."]);
+        return;
     }
 
     $fileName = "4111_" . str_replace("-", "", $dataBase) . ".xml";

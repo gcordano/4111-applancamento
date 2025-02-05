@@ -3,7 +3,7 @@
     "description": "export xml 4111",
     "autoload": {
         "psr-4": {
-            "Gustavo\\Backend\\": "src/"
+            "App\\": "src/"
         }
     },
     "authors": [

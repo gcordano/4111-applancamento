@@ -59,7 +59,6 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
             'GuzzleHttp\\Psr7\\' => 16,
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
-            'Gustavo\\Backend\\' => 16,
             'GrahamCampbell\\ResultType\\' => 26,
         ),
         'F' => 
@@ -74,6 +73,10 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
         'D' => 
         array (
             'Dotenv\\' => 7,
+        ),
+        'A' => 
+        array (
+            'App\\' => 4,
         ),
     );
 
@@ -171,10 +174,6 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
-        'Gustavo\\Backend\\' => 
-        array (
-            0 => __DIR__ . '/../..' . '/src',
-        ),
         'GrahamCampbell\\ResultType\\' => 
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
@@ -194,6 +193,10 @@ class ComposerStaticInit89a4425ce7c13254bc4a5f5099befcfb
         'Dotenv\\' => 
         array (
             0 => __DIR__ . '/..' . '/vlucas/phpdotenv/src',
+        ),
+        'App\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/src',
         ),
     );
 

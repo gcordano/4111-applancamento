@@ -1,42 +1,47 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Header from "./Header";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { Box, TextField, Button, Typography, FormControl, InputLabel, Select, MenuItem, CircularProgress } from "@mui/material";
 
-// Pegando valores do .env
 const apiUrl = process.env.REACT_APP_API_URL;
-const cnpj = process.env.REACT_APP_CNPJ;
-const conta1 = process.env.REACT_APP_CONTA1;
-const conta2 = process.env.REACT_APP_CONTA2;
 
 function EditFile() {
   const { id } = useParams();
-  const [fileName, setFileName] = useState(""); // Estado para o nome do arquivo
+  const navigate = useNavigate();
+  const [fileName, setFileName] = useState("");
   const [tipoRemessa, setTipoRemessa] = useState("I");
+  const [cnpj, setCnpj] = useState("");
+  const [contas, setContas] = useState([]);
   const [saldoDia1, setSaldoDia1] = useState("");
   const [saldoDia2, setSaldoDia2] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchFile = async () => {
-      const token = localStorage.getItem("token");
       try {
-        const response = await axios.get(`${apiUrl}/files.php?id=${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await axios.get(`${apiUrl}/src/routes/movimentacao.php?route=getFile&id=${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
-        if (response.data && response.data.name) {
-          setFileName(response.data.name); // Captura o nome correto
+        if (response.data) {
+          console.log("🔹 Dados recebidos da API:", response.data);
+          setFileName(response.data.name || "Documento Sem Nome");
+          setCnpj(response.data.cnpj || "");  // 🔹 Define o CNPJ
+          setTipoRemessa(response.data.tipo_remessa || "I"); // 🔹 Define o Tipo de Remessa
+
+          if (response.data.contas && response.data.contas.length === 2) {
+            setContas(response.data.contas);
+            setSaldoDia1(response.data.contas[0].saldo);
+            setSaldoDia2(response.data.contas[1].saldo);
+          }
         }
 
-        const fileData = response.data.content;
-        setSaldoDia1(fileData?.contas?.[0]?.saldoDia || "");
-        setSaldoDia2(fileData?.contas?.[1]?.saldoDia || "");
-        setTipoRemessa(fileData?.tipoRemessa || "I");
         setLoading(false);
       } catch (error) {
-        console.error("Erro ao buscar arquivo:", error);
+        console.error("❌ Erro ao buscar arquivo:", error);
         alert("Erro ao carregar arquivo.");
+        setLoading(false);
       }
     };
 
@@ -45,87 +50,112 @@ function EditFile() {
 
   const handleSave = async () => {
     const token = localStorage.getItem("token");
+  
     const data = {
-      cnpj,
-      contas: [
-        { codigoConta: conta1, saldoDia: saldoDia1 },
-        { codigoConta: conta2, saldoDia: saldoDia2 },
-      ],
-      tipoRemessa,
+      id_conta_1: contas[0].numero,
+      saldo_conta_1: saldoDia1,
+      id_conta_2: contas[1].numero,
+      saldo_conta_2: saldoDia2,
+      tipo_remessa: tipoRemessa,
     };
-
+  
+    console.log("🔹 Dados enviados para API:", data); // ✅ Debug no console
+  
     try {
-      await axios.put(`${apiUrl}/files.php?id=${id}`, data, {
+      const response = await axios.put(`${apiUrl}/src/routes/movimentacao.php?route=update&id=${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-      window.location.href = "/files";
+  
+      console.log("✅ Resposta da API:", response.data);
+      alert("Arquivo atualizado com sucesso!");
+      navigate("/files");
     } catch (error) {
-      console.error("Erro ao atualizar arquivo:", error);
-      alert("Não foi possível atualizar o arquivo.");
+      console.error("❌ Erro ao atualizar arquivo:", error);
+      alert("Erro ao atualizar o arquivo.");
     }
   };
 
   if (loading) {
-    return <div style={styles.loading}>Carregando...</div>;
+    return (
+      <Box sx={styles.loadingContainer}>
+        <CircularProgress color="inherit" />
+        <Typography variant="h6">Carregando arquivo...</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div style={styles.container}>
+    <Box sx={styles.container}>
       <Header />
-      <h1 style={styles.title}>Editar Documento {fileName}</h1>
-      <form onSubmit={(e) => e.preventDefault()} style={styles.form}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Tipo de Remessa</label>
-          <select
-            value={tipoRemessa}
-            onChange={(e) => setTipoRemessa(e.target.value)}
-            style={styles.select}
-            required
-          >
-            <option value="I">I (Primeira remessa do documento)</option>
-            <option value="S">S (Substituir documento enviado e aceito)</option>
-          </select>
-        </div>
+      <Typography variant="h4" sx={styles.title}>
+         Editar Documento {fileName}
+      </Typography>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>CNPJ</label>
-          <input type="text" value={cnpj} disabled style={styles.inputDisabled} />
-        </div>
+      <Box component="form" sx={styles.form}>
+        {/* Tipo de Remessa */}
+        <FormControl fullWidth sx={styles.formGroup}>
+          <InputLabel>Tipo de Remessa</InputLabel>
+          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required>
+            <MenuItem value="I">I (Primeira remessa do documento)</MenuItem>
+            <MenuItem value="S">S (Substituir documento enviado e aceito)</MenuItem>
+          </Select>
+        </FormControl>
 
-        <h3 style={styles.subtitle}>Contas</h3>
+        {/* CNPJ */}
+        <FormControl fullWidth sx={styles.formGroup}>
+          <InputLabel>CNPJ</InputLabel>
+          <Select value={cnpj} disabled>
+            <MenuItem value={cnpj}>{cnpj}</MenuItem>
+          </Select>
+        </FormControl>
 
-        <div style={styles.row}>
-          <input type="text" value={conta1} disabled style={styles.inputDisabled} />
-          <input
-            type="number"
-            placeholder="Saldo do Dia"
-            value={saldoDia1}
-            onChange={(e) => setSaldoDia1(e.target.value)}
-            style={styles.inputInline}
-            required
-          />
-        </div>
+        <Typography variant="h6" sx={styles.subtitle}>Contas</Typography>
 
-        <div style={styles.row}>
-          <input type="text" value={conta2} disabled style={styles.inputDisabled} />
-          <input
-            type="number"
-            placeholder="Saldo do Dia"
-            value={saldoDia2}
-            onChange={(e) => setSaldoDia2(e.target.value)}
-            style={styles.inputInline}
-            required
-          />
-        </div>
+        {/* Contas e Saldos */}
+        {contas.length === 2 && (
+          <>
+            <Box sx={styles.row}>
+              <TextField fullWidth label="Conta 1" value={contas[0].numero} disabled sx={styles.inputDisabled} />
+              <TextField
+                fullWidth
+                type="number"
+                label="Saldo do Dia"
+                value={saldoDia1}
+                onChange={(e) => setSaldoDia1(e.target.value)}
+                required
+                sx={styles.inputInline}
+              />
+            </Box>
 
-        <button type="button" style={styles.submitButton} onClick={handleSave}>
+            <Box sx={styles.row}>
+              <TextField fullWidth label="Conta 2" value={contas[1].numero} disabled sx={styles.inputDisabled} />
+              <TextField
+                fullWidth
+                type="number"
+                label="Saldo do Dia"
+                value={saldoDia2}
+                onChange={(e) => setSaldoDia2(e.target.value)}
+                required
+                sx={styles.inputInline}
+              />
+            </Box>
+          </>
+        )}
+
+        <Button
+          variant="contained"
+          color="primary"
+          fullWidth
+          sx={styles.submitButton}
+          onClick={handleSave}
+        >
           Salvar Alterações
-        </button>
-      </form>
-    </div>
+        </Button>
+      </Box>
+    </Box>
   );
 }
 
@@ -153,13 +183,8 @@ const styles = {
   formGroup: {
     marginBottom: "15px",
   },
-  label: {
-    display: "block",
-    marginBottom: "5px",
-    color: "#FFFFFF",
-  },
   inputDisabled: {
-    width: "96.4%",
+    width: "100%",
     padding: "10px",
     borderRadius: "5px",
     border: "1px solid #ddd",
@@ -175,25 +200,6 @@ const styles = {
     fontSize: "1rem",
     marginLeft: "10px",
   },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "15px",
-  },
-  select: {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "5px",
-    border: "1px solid #ddd",
-    fontSize: "1rem",
-    backgroundColor: "#FFFFFF",
-    color: "#000000",
-  },
-  subtitle: {
-    marginTop: "20px",
-    color: "#FFFFFF",
-  },
   submitButton: {
     width: "100%",
     padding: "10px",
@@ -204,10 +210,12 @@ const styles = {
     fontSize: "1rem",
     cursor: "pointer",
   },
-  loading: {
-    textAlign: "center",
-    color: "#FFFFFF",
-    fontSize: "1.5rem",
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "20px",
   },
 };
 
