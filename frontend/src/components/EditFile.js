@@ -57,15 +57,13 @@ function EditFile() {
       tipo_remessa: tipoRemessa,
     };
   
-  
     try {
-      const response = await axios.put(`${apiUrl}/src/routes/movimentacao.php?route=update&id=${id}`, data, {
+        await axios.put(`${apiUrl}/src/routes/movimentacao.php?route=update&id=${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-  
       alert("Arquivo atualizado com sucesso!");
       navigate("/files");
     } catch (error) {
