@@ -54,7 +54,6 @@ function CreateFile() {
         }, []);
         setCnpjList(groupedCnpjs);
       })
-      .catch(error => console.error("Erro ao buscar CNPJs e contas:", error));
   }, [apiUrl]);
 
   // Função para lidar com a troca do CNPJ selecionado

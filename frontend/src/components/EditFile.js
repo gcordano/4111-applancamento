@@ -25,7 +25,6 @@ function EditFile() {
         });
 
         if (response.data) {
-          console.log("🔹 Dados recebidos da API:", response.data);
           setFileName(response.data.name || "Documento Sem Nome");
           setCnpj(response.data.cnpj || "");  // 🔹 Define o CNPJ
           setTipoRemessa(response.data.tipo_remessa || "I"); // 🔹 Define o Tipo de Remessa
@@ -39,7 +38,6 @@ function EditFile() {
 
         setLoading(false);
       } catch (error) {
-        console.error("❌ Erro ao buscar arquivo:", error);
         alert("Erro ao carregar arquivo.");
         setLoading(false);
       }
@@ -59,7 +57,6 @@ function EditFile() {
       tipo_remessa: tipoRemessa,
     };
   
-    console.log("🔹 Dados enviados para API:", data); // ✅ Debug no console
   
     try {
       const response = await axios.put(`${apiUrl}/src/routes/movimentacao.php?route=update&id=${id}`, data, {
@@ -69,11 +66,9 @@ function EditFile() {
         },
       });
   
-      console.log("✅ Resposta da API:", response.data);
       alert("Arquivo atualizado com sucesso!");
       navigate("/files");
     } catch (error) {
-      console.error("❌ Erro ao atualizar arquivo:", error);
       alert("Erro ao atualizar o arquivo.");
     }
   };
