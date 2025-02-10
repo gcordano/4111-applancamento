@@ -10,7 +10,7 @@ import {
   Typography,
   Box,
   Stack,
-  CircularProgress,
+  CircularProgress
 } from "@mui/material";
 
 const createUrl = process.env.REACT_APP_CREATE_URL || "/create";
@@ -22,7 +22,7 @@ function FileList() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // 🔹 Buscar arquivos ao montar o componente
+  // Buscar arquivos ao montar o componente
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -45,60 +45,107 @@ function FileList() {
       });
   }, [navigate]);
 
-  // 🔹 Funções de manipulação de arquivos
+  // Funções de manipulação de arquivos
   const handleDelete = async (id) => {
     if (!window.confirm("Deletar este arquivo?")) {
-        return;
+      return;
     }
     try {
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=delete&id=${id}`, {
-            method: "PUT",
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Erro na requisição: ${response.status}`);
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=delete&id=${id}`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
+      );
 
-        const result = await response.json();
-        if (result.message === "Arquivo inativado com sucesso!") {
-            setFiles((prevFiles) => prevFiles.filter((file) => file.guid !== id));
-            alert(result.message);
-        } else {
-            alert("Erro ao inativar arquivo no banco.");
-        }
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+      }
 
+      const result = await response.json();
+      if (result.message === "Arquivo inativado com sucesso!") {
+        setFiles((prevFiles) => prevFiles.filter((file) => file.guid !== id));
+        alert(result.message);
+      } else {
+        alert("Erro ao inativar arquivo no banco.");
+      }
     } catch (error) {
-        alert("Erro ao inativar arquivo. Tente novamente.");
+      alert("Erro ao inativar arquivo. Tente novamente.");
     }
-};
+  };
+
+  const handleGenerateXML = async (id, fileName) => {
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=generateXML&id=${id}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao gerar XML");
+      }
+
+      const result = await response.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(result);
+      link.download = fileName; // Usa o nome formatado enviado pelo backend
+      link.click();
+    } catch (error) {
+      alert("Erro ao gerar XML: " + error.message);
+    }
+  };
 
   const handleTransmit = async (id) => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/movimentacao.php?route=transmit`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=transmit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ id }),
+        }
+      );
       const result = await response.json();
-      alert(result.message);
+      if (result.transmitido) {
+        alert("Transmissão finalizada com sucesso!");
+        // Atualiza o estado para desabilitar o botão de transmissão para este arquivo
+        setFiles((prevFiles) =>
+          prevFiles.map((file) =>
+            file.guid === id ? { ...file, transmitido: true } : file
+          )
+        );
+      } else {
+        alert("Erro na transmissão: " + result.message);
+      }
     } catch (error) {
       alert("Erro ao transmitir o arquivo. Tente novamente.");
     }
   };
 
+  // Ordena os arquivos com base na data extraída do nome (formato: 4111_YYYYMMDD.xml)
+  const sortedFiles = files.sort((a, b) =>
+    b.name.substr(5, 8).localeCompare(a.name.substr(5, 8))
+  );
+
   return (
     <Box sx={styles.container}>
       <Header showTitle={true} />
 
-      {/* 🔹 Botão para Criar Novo Arquivo */}
-      <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ marginBottom: 2 }}>
+      {/* Botão para Criar Novo Arquivo */}
+      <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ mb: 2 }}>
         <Button variant="contained" color="success" onClick={() => navigate(createUrl)}>
           Novo Arquivo
         </Button>
       </Stack>
 
-      {/* 🔹 Indicador de carregamento */}
+      {/* Indicador de carregamento */}
       {loading && (
         <Box sx={styles.loadingContainer}>
           <CircularProgress color="inherit" />
@@ -106,7 +153,7 @@ function FileList() {
         </Box>
       )}
 
-      {/* 🔹 Mensagem de erro */}
+      {/* Mensagem de erro */}
       {error && (
         <Box sx={styles.errorContainer}>
           <Typography variant="h6" color="error">
@@ -115,30 +162,62 @@ function FileList() {
         </Box>
       )}
 
-      {/* 🔹 Listagem de arquivos */}
-      {files.length > 0 ? (
-        <Stack spacing={2}>
-          {files.map((file) => (
+      {/* Listagem de arquivos em layout de grade */}
+      {!loading && !error && sortedFiles.length > 0 ? (
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: 2,
+          }}
+        >
+          {sortedFiles.map((file) => (
             <Card key={file.guid} sx={styles.card}>
               <CardContent>
-                <Typography variant="h6">{file.name}</Typography>
+                <Typography variant="h6" sx={{ fontSize: "1rem" }}>
+                  {file.name}
+                </Typography>
               </CardContent>
               <CardActions>
-                <Stack direction="row" spacing={1}>
-                  <Button variant="contained" color="primary" size="small" onClick={() => navigate(editUrl + `/${file.guid}`)}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    onClick={() => navigate(`${editUrl}/${file.guid}`)}
+                  >
                     Editar
                   </Button>
-                  <Button variant="contained" color="error" size="small" onClick={() => handleDelete(file.guid)}>
-                    Deletar
+                  <Button
+                    variant="contained"
+                    color="info"
+                    size="small"
+                    onClick={() => handleGenerateXML(file.guid, file.name)}
+                  >
+                    Gerar XML
                   </Button>
-                  <Button variant="contained" color="secondary" size="small" onClick={() => handleTransmit(file.guid)}>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    size="small"
+                    onClick={() => handleTransmit(file.guid)}
+                    disabled={file.transmitido}
+                  >
                     Transmitir
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    size="small"
+                    onClick={() => handleDelete(file.guid)}
+                  >
+                    Deletar
                   </Button>
                 </Stack>
               </CardActions>
             </Card>
           ))}
-        </Stack>
+        </Box>
       ) : (
         !loading &&
         !error && (
@@ -172,10 +251,12 @@ const styles = {
   card: {
     backgroundColor: "#444B52",
     color: "#FFFFFF",
-    padding: "10px",
     borderRadius: "8px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
-    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    padding: "10px",
   },
 };
 

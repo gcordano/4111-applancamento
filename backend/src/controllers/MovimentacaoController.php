@@ -66,30 +66,145 @@ class MovimentacaoController {
             ");
             $stmt->execute(['id' => $id]);
             $file = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    
             if (!$file) {
                 http_response_code(404);
                 echo json_encode(["message" => "Arquivo não encontrado"]);
                 return;
             }
-
+    
+            // Verificar se a data foi extraída corretamente
+            $dataMovimento = isset($file['data_movimento']) ? $file['data_movimento'] : date('Y-m-d');
+            
             $response = [
                 "guid" => $file["guid"],
                 "cnpj" => $file["cnpj"],
-                "name" => "4111_" . str_replace("-", "", $file["data_movimento"]) . ".xml",
+                "name" => "4111_" . str_replace("-", "", $dataMovimento) . ".xml",
                 "tipo_remessa" => $file["tipo_remessa"],
+                "data_movimento" => $dataMovimento, // Incluindo data_movimento
                 "contas" => [
                     ["numero" => $file["conta_1"], "saldo" => $file["saldo_conta_1"]],
                     ["numero" => $file["conta_2"], "saldo" => $file["saldo_conta_2"]]
                 ],
             ];
-
-            echo json_encode($response);
+    
+            return $response;
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode(["message" => "Erro ao buscar arquivo", "error" => $e->getMessage()]);
         }
     }
+    
+    
+    public function generateXML($id) {
+        try {
+            // Recupera o arquivo com base no ID
+            $file = $this->getFile($id);
+            
+            if (!$file) {
+                http_response_code(404);
+                echo json_encode(["message" => "Arquivo não encontrado"]);
+                return;
+            }
+    
+            // Verifica se a data_movimento está definida corretamente
+            if (!isset($file['data_movimento']) || empty($file['data_movimento'])) {
+                http_response_code(500);
+                echo json_encode(["message" => "Erro: data_movimento não definida"]);
+                return;
+            }
+    
+            // Extrai os dados do arquivo
+            $fileContent = [
+                "codigoDocumento" => '4111',
+                "cnpj" => $file['cnpj'],
+                // Pegando diretamente do banco (mas se vier "undefined", vamos calcular a data)
+                "dataBase" => $file['data_movimento'],
+                "tipoRemessa" => $file['tipo_remessa'],
+                "contas" => []
+            ];
+    
+            // Adicionar as contas no XML com verificações para garantir que as chaves existam
+            if (isset($file['contas']) && is_array($file['contas'])) {
+                foreach ($file['contas'] as $conta) {
+                    $fileContent['contas'][] = [
+                        'codigoConta' => $conta['numero'] ?? '',
+                        'saldoDia' => $conta['saldo'] ?? ''
+                    ];
+                }
+            }
+            
+            // Se a dataBase estiver "undefined" ou vazia, aplica a regra de negócio:
+            if ($fileContent['dataBase'] === 'undefined' || empty($fileContent['dataBase'])) {
+                $hoje = new \DateTime();
+                if ($hoje->format('N') == 1) { // Se hoje for segunda-feira
+                    $hoje->modify('-3 days'); // Usa a data da última sexta
+                } else {
+                    $hoje->modify('-1 day'); // Nos demais dias, usa o dia anterior
+                }
+                $fileContent['dataBase'] = $hoje->format('Y-m-d');
+            }
+    
+            // Gerar o XML
+            $dom = new \DOMDocument('1.0', 'utf-8');
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+    
+            // Criar o nó raiz <documento>
+            $documento = $dom->createElement('documento');
+            $documento->setAttribute('codigoDocumento', $fileContent['codigoDocumento']);
+            $documento->setAttribute('cnpj', $fileContent['cnpj']);
+            $documento->setAttribute('dataBase', $fileContent['dataBase']);
+            $documento->setAttribute('tipoRemessa', $fileContent['tipoRemessa']);
+            $dom->appendChild($documento);
+    
+            // Criar o nó <contas>
+            $contas = $dom->createElement('contas');
+            $documento->appendChild($contas);
+    
+            // Adicionar as contas no XML
+            foreach ($fileContent['contas'] as $conta) {
+                $contaNode = $dom->createElement('conta');
+                $contaNode->setAttribute('codigoConta', $conta['codigoConta']);
+                $contaNode->setAttribute('saldoDia', $conta['saldoDia']);
+                $contas->appendChild($contaNode);
+            }
+    
+            // Gerar o XML como string
+            $xmlString = $dom->saveXML();
+    
+            // Ajusta os espaços para tabs na indentação correta
+            $xmlString = preg_replace_callback('/^(  +)/m', function ($matches) {
+                $spaces = strlen($matches[1]);
+                $tabs = intdiv($spaces, 2);
+                return str_repeat("\t", $tabs);
+            }, $xmlString);
+    
+            // 🚀 **Correção do nome do arquivo**
+            $formattedDate = str_replace("-", "", trim($fileContent['dataBase']));
+    
+            if (empty($formattedDate) || strlen($formattedDate) !== 8) {
+                http_response_code(500);
+                echo json_encode(["message" => "Erro ao formatar data_movimento"]);
+                return;
+            }
+    
+            $fileName = "4111_" . $formattedDate . ".xml";
+    
+            // Configurações para o download do arquivo XML
+            header('Content-Type: application/xml');
+            header('Content-Disposition: attachment; filename="' . $fileName . '"');
+            header('Content-Length: ' . strlen($xmlString));
+    
+            echo $xmlString;
+            exit;
+    
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Erro ao gerar XML", "error" => $e->getMessage()]);
+        }
+    }    
+    
     
     public function getCnpjsEContas() {
         try {
@@ -173,7 +288,6 @@ class MovimentacaoController {
             return ["message" => "Erro ao verificar movimentação existente", "error" => $e->getMessage()];
         }
     }
-    
 
     public function updateMovimentacao($id) {
         try {
@@ -256,7 +370,174 @@ class MovimentacaoController {
             http_response_code(500);
             echo json_encode(["message" => "Erro interno ao inativar movimentação", "error" => $e->getMessage()]);
         }
-    }    
+    } 
+    
+    public function transmit($id) {
+        try {
+            // 1. Recupera os dados do arquivo (utiliza o método getFile)
+            $file = $this->getFile($id);
+            if (!$file) {
+                http_response_code(404);
+                echo json_encode(["message" => "Arquivo não encontrado"]);
+                return;
+            }
+    
+            // 2. Gerar o conteúdo XML para transmissão (mesma estrutura do XML gerado)
+            $dom = new \DOMDocument('1.0', 'utf-8');
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+    
+            // Cria o nó raiz <documento>
+            $documento = $dom->createElement('documento');
+            $documento->setAttribute('codigoDocumento', '4111');
+            $documento->setAttribute('cnpj', $file['cnpj']);
+            $documento->setAttribute('dataBase', $file['data_movimento']);
+            $documento->setAttribute('tipoRemessa', $file['tipo_remessa']);
+            $dom->appendChild($documento);
+    
+            // Cria o nó <contas>
+            $contas = $dom->createElement('contas');
+            $documento->appendChild($contas);
+    
+            foreach ($file['contas'] as $conta) {
+                $contaNode = $dom->createElement('conta');
+                $contaNode->setAttribute('codigoConta', $conta['numero']);
+                $contaNode->setAttribute('saldoDia', $conta['saldo']);
+                $contas->appendChild($contaNode);
+            }
+    
+            $xmlString = $dom->saveXML();
+    
+            // 3. Calcular o hash SHA256 e o tamanho do arquivo
+            $hash = hash('sha256', $xmlString);
+            $tamanho = strlen($xmlString);
+    
+            // 4. Gerar o nome do arquivo conforme o padrão: 4111_YYYYMMDD.xml
+            $formattedDate = str_replace("-", "", $file['data_movimento']);
+            $nomeArquivo = "4111_" . $formattedDate . ".xml";
+    
+            // 5. Ler as configurações do .env
+            $staUrl = $_ENV['STA_URL'] ?? 'https://sta-h.bcb.gov.br/staws/arquivos';
+            $staUser = $_ENV['STA_USER'] ?? '';
+            $staPass = $_ENV['STA_PASSWORD'] ?? '';
+            $staObs  = $_ENV['STA_OBSERVACAO'] ?? 'Teste de envio S no ambiente de homologação';
+    
+            $auth = base64_encode($staUser . ':' . $staPass);
+    
+            // 6. Abertura do Protocolo – Envia os parâmetros via POST
+            $paramsXML = '<?xml version="1.0" encoding="UTF-8"?>'
+                . '<Parametros>'
+                . '<IdentificadorDocumento>4111</IdentificadorDocumento>'
+                . '<Hash>' . $hash . '</Hash>'
+                . '<Tamanho>' . $tamanho . '</Tamanho>'
+                . '<NomeArquivo>' . $nomeArquivo . '</NomeArquivo>'
+                . '<Observacao>' . $staObs . '</Observacao>'
+                . '</Parametros>';
+    
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $staUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/xml',
+                'Authorization: Basic ' . $auth
+            ]);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $paramsXML);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $protocolResponse = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if (curl_errno($ch)) {
+                $error_msg = curl_error($ch);
+                curl_close($ch);
+                http_response_code(500);
+                echo json_encode(["message" => "Erro na abertura do protocolo: " . $error_msg]);
+                return;
+            }
+            curl_close($ch);
+    
+            if ($httpCode !== 200 && $httpCode !== 201) {
+                http_response_code(500);
+                echo json_encode(["message" => "Erro na abertura do protocolo, código HTTP: " . $httpCode, "response" => $protocolResponse]);
+                return;
+            }
+    
+            // Parse a resposta para extrair o protocolo (supondo que o XML de resposta contenha a tag <Protocolo>)
+            $xmlResponse = simplexml_load_string($protocolResponse);
+            if (!$xmlResponse || !isset($xmlResponse->Protocolo)) {
+                http_response_code(500);
+                echo json_encode(["message" => "Resposta inválida na abertura do protocolo", "response" => $protocolResponse]);
+                return;
+            }
+            $protocolo = (string)$xmlResponse->Protocolo;
+    
+            // 7. Envio do arquivo XML – PUT para {STA_URL}/{protocolo}/conteudo
+            $putUrl = $staUrl . '/' . $protocolo . '/conteudo';
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $putUrl);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/xml',
+                'Authorization: Basic ' . $auth
+            ]);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlString);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $putResponse = curl_exec($ch);
+            $httpCodePut = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if (curl_errno($ch)) {
+                $error_msg = curl_error($ch);
+                curl_close($ch);
+                http_response_code(500);
+                echo json_encode(["message" => "Erro no envio do arquivo: " . $error_msg]);
+                return;
+            }
+            curl_close($ch);
+    
+            if ($httpCodePut !== 200 && $httpCodePut !== 201) {
+                http_response_code(500);
+                echo json_encode(["message" => "Erro no envio do arquivo, código HTTP: " . $httpCodePut, "response" => $putResponse]);
+                return;
+            }
+    
+            // 8. Verificação da Transmissão – GET para {STA_URL}/{protocolo}/posicaoupload
+            $getUrl = $staUrl . '/' . $protocolo . '/posicaoupload';
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $getUrl);
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Authorization: Basic ' . $auth
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $getResponse = curl_exec($ch);
+            $httpCodeGet = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            if (curl_errno($ch)) {
+                $error_msg = curl_error($ch);
+                curl_close($ch);
+                http_response_code(500);
+                echo json_encode(["message" => "Erro na verificação da transmissão: " . $error_msg]);
+                return;
+            }
+            curl_close($ch);
+    
+            $statusXML = simplexml_load_string($getResponse);
+            if (!$statusXML || !isset($statusXML->Situacao)) {
+                http_response_code(500);
+                echo json_encode(["message" => "Resposta inválida na verificação da transmissão", "response" => $getResponse]);
+                return;
+            }
+            $situacao = (string)$statusXML->Situacao;
+    
+            // 9. Se a situação for "Transmissão finalizada", consideramos sucesso
+            if (strpos($situacao, 'Transmissão finalizada') !== false) {
+                // Aqui você pode atualizar o registro no banco para marcar como transmitido, se desejar.
+                echo json_encode(["message" => "Transmissão finalizada com sucesso!", "transmitido" => true]);
+            } else {
+                echo json_encode(["message" => "Erro na transmissão: " . $situacao, "transmitido" => false]);
+            }
+    
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(["message" => "Erro ao transmitir XML", "error" => $e->getMessage()]);
+        }
+    }
     
 }    
 ?>

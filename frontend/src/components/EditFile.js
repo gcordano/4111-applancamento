@@ -82,36 +82,49 @@ function EditFile() {
 
   return (
     <Box sx={styles.container}>
-      <Header />
-      <Typography variant="h4" sx={styles.title}>
-         Editar Documento {fileName}
-      </Typography>
 
+      {/* Header fixo no topo */}
+      <Box sx={styles.headerWrapper}>
+        <Header />
+      </Box>
+
+      <Typography variant="h4" sx={styles.title}>
+        Editar Documento {fileName}
+      </Typography>
+  
       <Box component="form" sx={styles.form}>
+        
         {/* Tipo de Remessa */}
         <FormControl fullWidth sx={styles.formGroup}>
           <InputLabel>Tipo de Remessa</InputLabel>
-          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required>
+          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required sx={styles.input}>
             <MenuItem value="I">I (Primeira remessa do documento)</MenuItem>
             <MenuItem value="S">S (Substituir documento enviado e aceito)</MenuItem>
           </Select>
         </FormControl>
-
-        {/* CNPJ */}
-        <FormControl fullWidth sx={styles.formGroup}>
-          <InputLabel>CNPJ</InputLabel>
-          <Select value={cnpj} disabled>
-            <MenuItem value={cnpj}>{cnpj}</MenuItem>
-          </Select>
-        </FormControl>
-
+  
+        {/* CNPJ Fixo */}
+        <TextField 
+          fullWidth 
+          label="CNPJ" 
+          value={cnpj} 
+          disabled 
+          sx={styles.inputDisabled} 
+        />
+  
         <Typography variant="h6" sx={styles.subtitle}>Contas</Typography>
-
+  
         {/* Contas e Saldos */}
         {contas.length === 2 && (
           <>
             <Box sx={styles.row}>
-              <TextField fullWidth label="Conta 1" value={contas[0].numero} disabled sx={styles.inputDisabled} />
+              <TextField 
+                fullWidth 
+                label="Conta 1" 
+                value={contas[0].numero} 
+                disabled 
+                sx={styles.inputDisabled} 
+              />
               <TextField
                 fullWidth
                 type="number"
@@ -119,12 +132,18 @@ function EditFile() {
                 value={saldoDia1}
                 onChange={(e) => setSaldoDia1(e.target.value)}
                 required
-                sx={styles.inputInline}
+                sx={styles.input}
               />
             </Box>
-
+  
             <Box sx={styles.row}>
-              <TextField fullWidth label="Conta 2" value={contas[1].numero} disabled sx={styles.inputDisabled} />
+              <TextField 
+                fullWidth 
+                label="Conta 2" 
+                value={contas[1].numero} 
+                disabled 
+                sx={styles.inputDisabled} 
+              />
               <TextField
                 fullWidth
                 type="number"
@@ -132,12 +151,12 @@ function EditFile() {
                 value={saldoDia2}
                 onChange={(e) => setSaldoDia2(e.target.value)}
                 required
-                sx={styles.inputInline}
+                sx={styles.input}
               />
             </Box>
           </>
         )}
-
+  
         <Button
           variant="contained"
           color="primary"
@@ -149,7 +168,7 @@ function EditFile() {
         </Button>
       </Box>
     </Box>
-  );
+  );  
 }
 
 const styles = {
@@ -158,6 +177,13 @@ const styles = {
     color: "#FFFFFF",
     minHeight: "100vh",
     padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  headerWrapper: {
+    width: "100%",
+    marginBottom: "20px", // 🔹 Espaço entre Header e Conteúdo
   },
   title: {
     textAlign: "center",
@@ -169,46 +195,37 @@ const styles = {
     maxWidth: "600px",
     margin: "0 auto",
     backgroundColor: "#444B52",
-    padding: "20px",
+    padding: "25px",
     borderRadius: "10px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
   },
   formGroup: {
     marginBottom: "15px",
   },
-  inputDisabled: {
-    width: "100%",
-    padding: "10px",
-    borderRadius: "5px",
-    border: "1px solid #ddd",
-    fontSize: "1rem",
-    backgroundColor: "#e0e0e0",
-    color: "#555",
+  subtitle: {
+    marginBottom: "15px",
   },
-  inputInline: {
-    width: "50%",
-    padding: "10px",
+  row: {
+    display: "flex",
+    gap: "15px", // 🔹 Espaço entre Conta e Saldo
+    flexDirection: "row",
+    marginBottom: "15px",
+  },
+  input: {
+    backgroundColor: "#FFFFFF", // 🔹 Fundo branco
+    color: "#000000", // 🔹 Texto preto
     borderRadius: "5px",
-    border: "1px solid #ddd",
-    fontSize: "1rem",
-    marginLeft: "10px",
+  },
+  inputDisabled: {
+    backgroundColor: "#E0E0E0", // 🔹 Cinza claro para inputs desativados (CNPJ e contas)
+    color: "#000000",
+    borderRadius: "5px",
   },
   submitButton: {
-    width: "100%",
-    padding: "10px",
-    backgroundColor: "#007BFF",
-    color: "#FFFFFF",
-    border: "none",
-    borderRadius: "5px",
-    fontSize: "1rem",
-    cursor: "pointer",
-  },
-  loadingContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
     marginTop: "20px",
+    padding: "12px",
+    fontSize: "1rem",
+    fontWeight: "bold",
   },
 };
 

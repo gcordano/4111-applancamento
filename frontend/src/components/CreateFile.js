@@ -122,24 +122,40 @@ function CreateFile() {
 
   return (
     <Box sx={styles.container}>
-      <Header /> {/* 🔹 Header fixo no topo */}
+      
+      {/* Header fixo no topo */}
+      <Box sx={styles.headerWrapper}>
+        <Header />
+      </Box>
+  
       <Typography variant="h4" sx={styles.title}>
         Criar Documento 4111_{dataBase}.xml
       </Typography>
+  
       <Box component="form" onSubmit={handleCreateFile} sx={styles.form}>
         
         {/* Tipo de Remessa */}
         <FormControl fullWidth sx={styles.formGroup}>
           <InputLabel>Tipo de Remessa</InputLabel>
-          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required>
+          <Select 
+            value={tipoRemessa} 
+            onChange={(e) => setTipoRemessa(e.target.value)} 
+            required
+            sx={styles.input}
+          >
             <MenuItem value="I">I (Primeira remessa do documento)</MenuItem>
           </Select>
         </FormControl>
-
+  
         {/* CNPJ */}
         <FormControl fullWidth sx={styles.formGroup}>
           <InputLabel>CNPJ</InputLabel>
-          <Select value={selectedCnpj} onChange={handleCnpjChange} required>
+          <Select 
+            value={selectedCnpj} 
+            onChange={handleCnpjChange} 
+            required
+            sx={styles.input}
+          >
             <MenuItem value="">Selecione um CNPJ</MenuItem>
             {cnpjList.map(cnpj => (
               <MenuItem key={cnpj.id} value={cnpj.id}>
@@ -148,13 +164,19 @@ function CreateFile() {
             ))}
           </Select>
         </FormControl>
-
+  
         <Typography variant="h6" sx={styles.subtitle}>Contas</Typography>
-
+  
         {contas.length === 2 && (
           <>
             <Box sx={styles.row}>
-              <TextField fullWidth label="Conta 1" value={contas[0].conta} disabled sx={styles.inputDisabled} />
+              <TextField 
+                fullWidth 
+                label="Conta 1" 
+                value={contas[0].conta} 
+                disabled 
+                sx={styles.inputDisabled} 
+              />
               <TextField
                 fullWidth
                 type="number"
@@ -162,12 +184,18 @@ function CreateFile() {
                 value={saldoDia1}
                 onChange={(e) => setSaldoDia1(e.target.value)}
                 required
-                sx={styles.inputInline}
+                sx={styles.input}
               />
             </Box>
-
+  
             <Box sx={styles.row}>
-              <TextField fullWidth label="Conta 2" value={contas[1].conta} disabled sx={styles.inputDisabled} />
+              <TextField 
+                fullWidth 
+                label="Conta 2" 
+                value={contas[1].conta} 
+                disabled 
+                sx={styles.inputDisabled} 
+              />
               <TextField
                 fullWidth
                 type="number"
@@ -175,12 +203,12 @@ function CreateFile() {
                 value={saldoDia2}
                 onChange={(e) => setSaldoDia2(e.target.value)}
                 required
-                sx={styles.inputInline}
+                sx={styles.input}
               />
             </Box>
           </>
         )}
-
+  
         <Button
           type="submit"
           variant="contained"
@@ -202,7 +230,14 @@ const styles = {
     color: "#FFFFFF",
     minHeight: "100vh",
     padding: "20px",
-    paddingTop: "20px", // 🔹 Adiciona espaço para evitar sobreposição com o Header
+    paddingTop: "20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  headerWrapper: {
+    width: "100%",
+    marginBottom: "20px", // 🔹 Espaço entre Header e Conteúdo
   },
   title: {
     textAlign: "center",
@@ -214,12 +249,37 @@ const styles = {
     maxWidth: "600px",
     margin: "0 auto",
     backgroundColor: "#444B52",
-    padding: "20px",
+    padding: "25px",
     borderRadius: "10px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
   },
+  formGroup: {
+    marginBottom: "15px",
+  },
+  subtitle: {
+    marginBottom: "15px",
+  },
+  row: {
+    display: "flex",
+    gap: "15px", // 🔹 Espaço entre Conta e Saldo
+    flexDirection: "row",
+    marginBottom: "15px",
+  },
+  input: {
+    backgroundColor: "#FFFFFF", // 🔹 Fundo branco
+    color: "#000000", // 🔹 Texto preto
+    borderRadius: "5px",
+  },
+  inputDisabled: {
+    backgroundColor: "#E0E0E0", // 🔹 Cinza claro para inputs desativados
+    color: "#000000",
+    borderRadius: "5px",
+  },
   submitButton: {
     marginTop: "20px",
+    padding: "12px",
+    fontSize: "1rem",
+    fontWeight: "bold",
   },
 };
 

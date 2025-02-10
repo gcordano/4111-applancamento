@@ -36,17 +36,20 @@ switch ($route) {
         } else {
             http_response_code(405);
             echo json_encode(["message" => "Método não permitido"]);
-                }
+        }
         break;
 
     case 'getFile': 
         if (isset($_GET['id'])) {
-                $controller->getFile($_GET['id']);
-        } else {
+            $file = $controller->getFile($_GET['id']);
+            if ($file) {  // Se encontrou o arquivo
+            echo json_encode($file);
+        }
+        } else {                
             http_response_code(400);
             echo json_encode(["message" => "ID do arquivo é obrigatório"]);
         }
-        break;
+        break;        
 
     case 'create':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -58,16 +61,26 @@ switch ($route) {
         }
         break;
 
-        case 'checkExistingMovimentacao':
-            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $data = json_decode(file_get_contents("php://input"), true);
-                echo json_encode($controller->checkExistingMovimentacao($data));
-            } else {
-                http_response_code(405);
-                echo json_encode(["message" => "Método não permitido"]);
-            }
-            break;
+    case 'checkExistingMovimentacao':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            echo json_encode($controller->checkExistingMovimentacao($data));
+        } else {
+            http_response_code(405);
+            echo json_encode(["message" => "Método não permitido"]);
+        }
+        break;
+
+    case 'generateXML':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
+            $controller->generateXML($_GET['id']);
+        } else {
+            http_response_code(400);
+            echo json_encode(["message" => "ID do arquivo é obrigatório"]);
+        }
+        break;
             
+
     case 'update':
         if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
             parse_str(file_get_contents("php://input"), $data);
@@ -79,13 +92,28 @@ switch ($route) {
         break;
 
     case 'delete':
-        if ($_SERVER["REQUEST_METHOD"] === "PUT") { // ✅ ALTERADO PARA PUT
+        if ($_SERVER["REQUEST_METHOD"] === "PUT") { 
             $id = $_GET["id"] ?? null;
             if ($id) {
-                $controller->deleteMovimentacao($id); // ✅ Corrigido o nome do objeto
+                $controller->deleteMovimentacao($id); 
             } else {
                 http_response_code(400);
                 echo json_encode(["message" => "ID não informado para deletar."]);
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(["message" => "Método não permitido"]);
+        }
+        break;
+
+    case 'transmit':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            if (isset($data['id'])) {
+                $controller->transmit($data['id']);
+            } else {
+                http_response_code(400);
+                echo json_encode(["message" => "ID do arquivo não informado"]);
             }
         } else {
             http_response_code(405);
