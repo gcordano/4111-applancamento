@@ -417,7 +417,7 @@ class MovimentacaoController {
             $nomeArquivo = "4111_" . $formattedDate . ".xml";
     
             // 5. Ler as configurações do .env
-            $staUrl = $_ENV['STA_URL'] ?? 'https://sta-h.bcb.gov.br/staws/arquivos';
+            $staUrl = $_ENV['STA_URL'] ?? 'http://sta-h.bcb.gov.br/staws/arquivos';
             $staUser = $_ENV['STA_USER'] ?? '';
             $staPass = $_ENV['STA_PASSWORD'] ?? '';
             $staObs  = $_ENV['STA_OBSERVACAO'] ?? 'Teste de envio S no ambiente de homologação';
