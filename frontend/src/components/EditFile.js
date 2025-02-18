@@ -17,6 +17,12 @@ function EditFile() {
   const [saldoDia2, setSaldoDia2] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Recupera o tema salvo no localStorage (padrão: true - dark mode)
+  const [isDarkMode] = useState(() => {
+    const saved = localStorage.getItem("isDarkMode");
+    return saved ? JSON.parse(saved) : true; // true para o modo escuro por padrão
+  });
+
   useEffect(() => {
     const fetchFile = async () => {
       try {
@@ -73,7 +79,7 @@ function EditFile() {
 
   if (loading) {
     return (
-      <Box sx={styles.loadingContainer}>
+      <Box sx={isDarkMode ? darkStyles.loadingContainer : lightStyles.loadingContainer}>
         <CircularProgress color="inherit" />
         <Typography variant="h6">Carregando arquivo...</Typography>
       </Box>
@@ -81,23 +87,23 @@ function EditFile() {
   }
 
   return (
-    <Box sx={styles.container}>
+    <Box sx={isDarkMode ? darkStyles.container : lightStyles.container}>
 
       {/* Header fixo no topo */}
-      <Box sx={styles.headerWrapper}>
-        <Header />
+      <Box sx={isDarkMode ? darkStyles.headerWrapper : lightStyles.headerWrapper}>
+        <Header isDarkMode={isDarkMode} />
       </Box>
 
-      <Typography variant="h4" sx={styles.title}>
+      <Typography variant="h4" sx={isDarkMode ? darkStyles.title : lightStyles.title}>
         Editar Documento {fileName}
       </Typography>
   
-      <Box component="form" sx={styles.form}>
+      <Box component="form" sx={isDarkMode ? darkStyles.form : lightStyles.form}>
         
         {/* Tipo de Remessa */}
-        <FormControl fullWidth sx={styles.formGroup}>
+        <FormControl fullWidth sx={isDarkMode ? darkStyles.formGroup : lightStyles.formGroup}>
           <InputLabel>Tipo de Remessa</InputLabel>
-          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required sx={styles.input}>
+          <Select value={tipoRemessa} onChange={(e) => setTipoRemessa(e.target.value)} required sx={isDarkMode ? darkStyles.input : lightStyles.input}>
             <MenuItem value="I">I (Primeira remessa do documento)</MenuItem>
             <MenuItem value="S">S (Substituir documento enviado e aceito)</MenuItem>
           </Select>
@@ -109,21 +115,21 @@ function EditFile() {
           label="CNPJ" 
           value={cnpj} 
           disabled 
-          sx={styles.inputDisabled} 
+          sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled} 
         />
   
-        <Typography variant="h6" sx={styles.subtitle}>Contas</Typography>
+        <Typography variant="h6" sx={isDarkMode ? darkStyles.subtitle : lightStyles.subtitle}>Contas</Typography>
   
         {/* Contas e Saldos */}
         {contas.length === 2 && (
           <>
-            <Box sx={styles.row}>
+            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
               <TextField 
                 fullWidth 
                 label="Conta 1" 
                 value={contas[0].numero} 
                 disabled 
-                sx={styles.inputDisabled} 
+                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled} 
               />
               <TextField
                 fullWidth
@@ -132,17 +138,17 @@ function EditFile() {
                 value={saldoDia1}
                 onChange={(e) => setSaldoDia1(e.target.value)}
                 required
-                sx={styles.input}
+                sx={isDarkMode ? darkStyles.input : lightStyles.input}
               />
             </Box>
   
-            <Box sx={styles.row}>
+            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
               <TextField 
                 fullWidth 
                 label="Conta 2" 
                 value={contas[1].numero} 
                 disabled 
-                sx={styles.inputDisabled} 
+                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled} 
               />
               <TextField
                 fullWidth
@@ -151,7 +157,7 @@ function EditFile() {
                 value={saldoDia2}
                 onChange={(e) => setSaldoDia2(e.target.value)}
                 required
-                sx={styles.input}
+                sx={isDarkMode ? darkStyles.input : lightStyles.input}
               />
             </Box>
           </>
@@ -161,7 +167,7 @@ function EditFile() {
           variant="contained"
           color="primary"
           fullWidth
-          sx={styles.submitButton}
+          sx={isDarkMode ? darkStyles.submitButton : lightStyles.submitButton}
           onClick={handleSave}
         >
           Salvar Alterações
@@ -171,9 +177,9 @@ function EditFile() {
   );  
 }
 
-const styles = {
+const darkStyles = {
   container: {
-    backgroundColor: "#32373C",
+    backgroundColor: "#262626",
     color: "#FFFFFF",
     minHeight: "100vh",
     padding: "20px",
@@ -183,7 +189,7 @@ const styles = {
   },
   headerWrapper: {
     width: "100%",
-    marginBottom: "20px", // 🔹 Espaço entre Header e Conteúdo
+    marginBottom: "20px",
   },
   title: {
     textAlign: "center",
@@ -194,7 +200,7 @@ const styles = {
   form: {
     maxWidth: "600px",
     margin: "0 auto",
-    backgroundColor: "#444B52",
+    backgroundColor: "#1C1C1C",
     padding: "25px",
     borderRadius: "10px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
@@ -204,20 +210,80 @@ const styles = {
   },
   subtitle: {
     marginBottom: "15px",
+    color: "#FFFFFF",
   },
   row: {
     display: "flex",
-    gap: "15px", // 🔹 Espaço entre Conta e Saldo
+    gap: "15px",
     flexDirection: "row",
     marginBottom: "15px",
   },
   input: {
-    backgroundColor: "#FFFFFF", // 🔹 Fundo branco
-    color: "#000000", // 🔹 Texto preto
+    backgroundColor: "#FFFFFF",
+    color: "#000000",
     borderRadius: "5px",
   },
   inputDisabled: {
-    backgroundColor: "#E0E0E0", // 🔹 Cinza claro para inputs desativados (CNPJ e contas)
+    backgroundColor: "#E0E0E0",
+    color: "#000000",
+    borderRadius: "5px",
+  },
+  submitButton: {
+    marginTop: "20px",
+    padding: "12px",
+    fontSize: "1rem",
+    fontWeight: "bold",
+  },
+};
+
+const lightStyles = {
+  container: {
+    backgroundColor: "#CCCCCC",
+    color: "#000000",
+    minHeight: "100vh",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  headerWrapper: {
+    width: "100%",
+    marginBottom: "20px",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: "20px",
+    fontSize: "2rem",
+    color: "#000000",
+  },
+  form: {
+    maxWidth: "600px",
+    margin: "0 auto",
+    backgroundColor: "#FFFFFF",
+    padding: "25px",
+    borderRadius: "10px",
+    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+  },
+  formGroup: {
+    marginBottom: "15px",
+  },
+  subtitle: {
+    marginBottom: "15px",
+    color: "#000000",
+  },
+  row: {
+    display: "flex",
+    gap: "15px",
+    flexDirection: "row",
+    marginBottom: "15px",
+  },
+  input: {
+    backgroundColor: "#FFFFFF",
+    color: "#000000",
+    borderRadius: "5px",
+  },
+  inputDisabled: {
+    backgroundColor: "#E0E0E0",
     color: "#000000",
     borderRadius: "5px",
   },

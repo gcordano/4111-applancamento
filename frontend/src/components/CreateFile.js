@@ -4,6 +4,12 @@ import Header from "./Header";
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, TextField, Button, CircularProgress } from "@mui/material";
 
 function CreateFile() {
+  // Recupera o tema salvo (padrão: true - dark mode)
+  const [isDarkMode] = useState(() => {
+    const saved = localStorage.getItem("isDarkMode");
+    return saved ? JSON.parse(saved) : true;
+  });
+  
   const [tipoRemessa, setTipoRemessa] = useState("I");
   const [saldoDia1, setSaldoDia1] = useState("");
   const [saldoDia2, setSaldoDia2] = useState("");
@@ -121,61 +127,73 @@ function CreateFile() {
 
 
   return (
-    <Box sx={styles.container}>
-      
-      {/* Header fixo no topo */}
-      <Box sx={styles.headerWrapper}>
-        <Header />
+    <Box sx={isDarkMode ? darkStyles.container : lightStyles.container}>
+      {/* Header */}
+      <Box sx={isDarkMode ? darkStyles.headerWrapper : lightStyles.headerWrapper}>
+        <Header isDarkMode={isDarkMode} />
       </Box>
-  
-      <Typography variant="h4" sx={styles.title}>
+
+      <Typography variant="h4" sx={isDarkMode ? darkStyles.title : lightStyles.title}>
         Criar Documento 4111_{dataBase}.xml
       </Typography>
-  
-      <Box component="form" onSubmit={handleCreateFile} sx={styles.form}>
-        
+
+      <Box
+        component="form"
+        onSubmit={handleCreateFile}
+        sx={isDarkMode ? darkStyles.form : lightStyles.form}
+      >
         {/* Tipo de Remessa */}
-        <FormControl fullWidth sx={styles.formGroup}>
+        <FormControl
+          fullWidth
+          sx={isDarkMode ? darkStyles.formGroup : lightStyles.formGroup}
+        >
           <InputLabel>Tipo de Remessa</InputLabel>
-          <Select 
-            value={tipoRemessa} 
-            onChange={(e) => setTipoRemessa(e.target.value)} 
+          <Select
+            value={tipoRemessa}
+            onChange={(e) => setTipoRemessa(e.target.value)}
             required
-            sx={styles.input}
+            sx={isDarkMode ? darkStyles.input : lightStyles.input}
           >
-            <MenuItem value="I">I (Primeira remessa do documento)</MenuItem>
+            <MenuItem value="I">
+              I (Primeira remessa do documento)
+            </MenuItem>
           </Select>
         </FormControl>
-  
+
         {/* CNPJ */}
-        <FormControl fullWidth sx={styles.formGroup}>
+        <FormControl
+          fullWidth
+          sx={isDarkMode ? darkStyles.formGroup : lightStyles.formGroup}
+        >
           <InputLabel>CNPJ</InputLabel>
-          <Select 
-            value={selectedCnpj} 
-            onChange={handleCnpjChange} 
+          <Select
+            value={selectedCnpj}
+            onChange={handleCnpjChange}
             required
-            sx={styles.input}
+            sx={isDarkMode ? darkStyles.input : lightStyles.input}
           >
             <MenuItem value="">Selecione um CNPJ</MenuItem>
-            {cnpjList.map(cnpj => (
+            {cnpjList.map((cnpj) => (
               <MenuItem key={cnpj.id} value={cnpj.id}>
                 {cnpj.cnpj} - {cnpj.name}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
-  
-        <Typography variant="h6" sx={styles.subtitle}>Contas</Typography>
-  
+
+        <Typography variant="h6" sx={isDarkMode ? darkStyles.subtitle : lightStyles.subtitle}>
+          Contas
+        </Typography>
+
         {contas.length === 2 && (
           <>
-            <Box sx={styles.row}>
-              <TextField 
-                fullWidth 
-                label="Conta 1" 
-                value={contas[0].conta} 
-                disabled 
-                sx={styles.inputDisabled} 
+            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
+              <TextField
+                fullWidth
+                label="Conta 1"
+                value={contas[0].conta}
+                disabled
+                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled}
               />
               <TextField
                 fullWidth
@@ -184,17 +202,17 @@ function CreateFile() {
                 value={saldoDia1}
                 onChange={(e) => setSaldoDia1(e.target.value)}
                 required
-                sx={styles.input}
+                sx={isDarkMode ? darkStyles.input : lightStyles.input}
               />
             </Box>
-  
-            <Box sx={styles.row}>
-              <TextField 
-                fullWidth 
-                label="Conta 2" 
-                value={contas[1].conta} 
-                disabled 
-                sx={styles.inputDisabled} 
+
+            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
+              <TextField
+                fullWidth
+                label="Conta 2"
+                value={contas[1].conta}
+                disabled
+                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled}
               />
               <TextField
                 fullWidth
@@ -203,41 +221,45 @@ function CreateFile() {
                 value={saldoDia2}
                 onChange={(e) => setSaldoDia2(e.target.value)}
                 required
-                sx={styles.input}
+                sx={isDarkMode ? darkStyles.input : lightStyles.input}
               />
             </Box>
           </>
         )}
-  
+
         <Button
           type="submit"
           variant="contained"
           color="success"
           fullWidth
-          sx={styles.submitButton}
+          sx={isDarkMode ? darkStyles.submitButton : lightStyles.submitButton}
           disabled={loading}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : "Criar"}
+          {loading ? (
+            <CircularProgress size={24} color="inherit" />
+          ) : (
+            "Criar"
+          )}
         </Button>
       </Box>
     </Box>
   );
 }
 
-const styles = {
+// Estilos para o tema DARK
+const darkStyles = {
   container: {
-    backgroundColor: "#32373C",
+    backgroundColor: "#262626",
     color: "#FFFFFF",
     minHeight: "100vh",
     padding: "20px",
-    paddingTop: "20px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
   },
   headerWrapper: {
     width: "100%",
-    marginBottom: "20px", // 🔹 Espaço entre Header e Conteúdo
+    marginBottom: "20px",
   },
   title: {
     textAlign: "center",
@@ -248,7 +270,7 @@ const styles = {
   form: {
     maxWidth: "600px",
     margin: "0 auto",
-    backgroundColor: "#444B52",
+    backgroundColor: "#1C1C1C",
     padding: "25px",
     borderRadius: "10px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
@@ -258,20 +280,81 @@ const styles = {
   },
   subtitle: {
     marginBottom: "15px",
+    color: "#FFFFFF",
   },
   row: {
     display: "flex",
-    gap: "15px", // 🔹 Espaço entre Conta e Saldo
+    gap: "15px",
     flexDirection: "row",
     marginBottom: "15px",
   },
   input: {
-    backgroundColor: "#FFFFFF", // 🔹 Fundo branco
-    color: "#000000", // 🔹 Texto preto
+    backgroundColor: "#FFFFFF",
+    color: "#000000",
     borderRadius: "5px",
   },
   inputDisabled: {
-    backgroundColor: "#E0E0E0", // 🔹 Cinza claro para inputs desativados
+    backgroundColor: "#E0E0E0",
+    color: "#000000",
+    borderRadius: "5px",
+  },
+  submitButton: {
+    marginTop: "20px",
+    padding: "12px",
+    fontSize: "1rem",
+    fontWeight: "bold",
+  },
+};
+
+// Estilos para o tema LIGHT
+const lightStyles = {
+  container: {
+    backgroundColor: "#CCCCCC",
+    color: "#000000",
+    minHeight: "100vh",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  headerWrapper: {
+    width: "100%",
+    marginBottom: "20px",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: "20px",
+    fontSize: "2rem",
+    color: "#000000",
+  },
+  form: {
+    maxWidth: "600px",
+    margin: "0 auto",
+    backgroundColor: "#FFFFFF",
+    padding: "25px",
+    borderRadius: "10px",
+    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+  },
+  formGroup: {
+    marginBottom: "15px",
+  },
+  subtitle: {
+    marginBottom: "15px",
+    color: "#000000",
+  },
+  row: {
+    display: "flex",
+    gap: "15px",
+    flexDirection: "row",
+    marginBottom: "15px",
+  },
+  input: {
+    backgroundColor: "#FFFFFF",
+    color: "#000000",
+    borderRadius: "5px",
+  },
+  inputDisabled: {
+    backgroundColor: "#E0E0E0",
     color: "#000000",
     borderRadius: "5px",
   },

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchFiles } from "../services/apiService";
 import Header from "./Header";
-import {
+import { 
   Card,
   CardContent,
   CardActions,
@@ -10,13 +10,30 @@ import {
   Typography,
   Box,
   Stack,
-  CircularProgress
+  CircularProgress,
+  IconButton
 } from "@mui/material";
+import { Brightness4, Brightness7 } from "@mui/icons-material";
 
 const createUrl = process.env.REACT_APP_CREATE_URL || "/create";
 const editUrl = process.env.REACT_APP_EDIT_URL || "/edit";
 
 function FileList() {
+  /// Recupera o tema salvo no localStorage (padrão: true - dark mode)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem("isDarkMode");
+    return saved ? JSON.parse(saved) : true; // true para o modo escuro por padrão
+  });
+
+  // Função para alternar o tema
+  const handleToggleTheme = () => {
+    setIsDarkMode((prevMode) => {
+      const newMode = !prevMode;
+      localStorage.setItem("isDarkMode", JSON.stringify(newMode)); // Salva a escolha do tema
+      return newMode;
+    });
+  };
+
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -135,70 +152,76 @@ function FileList() {
   );
 
   return (
-    <Box sx={styles.container}>
-      <Header showTitle={true} />
+    <Box sx={isDarkMode ? darkStyles.container : lightStyles.container}>
+      <Header showTitle={true} isDarkMode={isDarkMode} />
 
-      {/* Botão para Criar Novo Arquivo */}
       <Stack direction="row" spacing={2} justifyContent="space-between" sx={{ mb: 2 }}>
-        <Button variant="contained" color="success" onClick={() => navigate(createUrl)}>
+        <Button
+          sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
+          onClick={() => navigate(createUrl)}
+        >
           Novo Arquivo
         </Button>
+
+        {/* Botão de alternância de tema usando ícones do MUI */}
+        <IconButton onClick={handleToggleTheme}>
+          {isDarkMode ? <Brightness7 /> : <Brightness4 />}
+        </IconButton>
       </Stack>
 
-      {/* Indicador de carregamento */}
       {loading && (
-        <Box sx={styles.loadingContainer}>
+        <Box sx={isDarkMode ? darkStyles.loadingContainer : lightStyles.loadingContainer}>
           <CircularProgress color="inherit" />
-          <Typography variant="h6">Carregando arquivos...</Typography>
+          <Typography variant="h6" sx={{ mt: 1 }}>
+            Carregando arquivos...
+          </Typography>
         </Box>
       )}
 
-      {/* Mensagem de erro */}
       {error && (
-        <Box sx={styles.errorContainer}>
+        <Box sx={isDarkMode ? darkStyles.errorContainer : lightStyles.errorContainer}>
           <Typography variant="h6" color="error">
             {error}
           </Typography>
         </Box>
       )}
 
-      {/* Listagem de arquivos em layout de grade */}
       {!loading && !error && sortedFiles.length > 0 ? (
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gridTemplateColumns: "repeat(3, 1fr)",
             gap: 2,
           }}
         >
           {sortedFiles.map((file) => (
-            <Card key={file.guid} sx={styles.card}>
+            <Card
+              key={file.guid}
+              sx={isDarkMode ? darkStyles.card : lightStyles.card}
+            >
               <CardContent>
-                <Typography variant="h6" sx={{ fontSize: "1rem" }}>
+                <Typography variant="h6" sx={{ fontSize: "1.2rem", fontWeight: "bold" }}>
                   {file.name}
                 </Typography>
               </CardContent>
-              <CardActions>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+              <CardActions sx={{ justifyContent: "flex-end" }}>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: "nowrap", gap: 1 }}>
                   <Button
-                    variant="contained"
-                    color="primary"
+                    sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
                     size="small"
                     onClick={() => navigate(`${editUrl}/${file.guid}`)}
                   >
                     Editar
                   </Button>
                   <Button
-                    variant="contained"
-                    color="info"
+                    sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
                     size="small"
                     onClick={() => handleGenerateXML(file.guid, file.name)}
                   >
-                    Gerar XML
+                    XML
                   </Button>
                   <Button
-                    variant="contained"
-                    color="secondary"
+                    sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
                     size="small"
                     onClick={() => handleTransmit(file.guid)}
                     disabled={file.transmitido}
@@ -206,8 +229,7 @@ function FileList() {
                     Transmitir
                   </Button>
                   <Button
-                    variant="contained"
-                    color="error"
+                    sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
                     size="small"
                     onClick={() => handleDelete(file.guid)}
                   >
@@ -221,7 +243,14 @@ function FileList() {
       ) : (
         !loading &&
         !error && (
-          <Typography variant="h6" color="white" align="center">
+          <Typography
+            variant="h6"
+            align="center"
+            sx={{
+              color: isDarkMode ? "#FFFFFF" : "#000000",
+              mt: 2,
+            }}
+          >
             Nenhum arquivo encontrado.
           </Typography>
         )
@@ -230,9 +259,10 @@ function FileList() {
   );
 }
 
-const styles = {
+// Estilos para o tema DARK
+const darkStyles = {
   container: {
-    backgroundColor: "#32373C",
+    backgroundColor: "#262626",
     color: "#FFFFFF",
     minHeight: "100vh",
     padding: "20px",
@@ -249,7 +279,7 @@ const styles = {
     marginTop: "20px",
   },
   card: {
-    backgroundColor: "#444B52",
+    backgroundColor: "#1C1C1C",
     color: "#FFFFFF",
     borderRadius: "8px",
     boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.2)",
@@ -257,6 +287,65 @@ const styles = {
     flexDirection: "column",
     justifyContent: "space-between",
     padding: "10px",
+    minWidth: "340px",
+  },
+  gradientButton: {
+    background: "linear-gradient(to right, #A8C545, #B8D954)",
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    "&:hover": {
+      background: "linear-gradient(to right, #A8C545, #B8D954)",
+      filter: "brightness(1.05)",
+    },
+    "&.Mui-disabled": {
+      opacity: 0.5,
+      color: "#FFFFFF",
+    },
+  },
+};
+
+// Estilos para o tema WHITE
+const lightStyles = {
+  container: {
+    backgroundColor: "#CCCCCC",
+    color: "#000000",
+    minHeight: "100vh",
+    padding: "20px",
+  },
+  loadingContainer: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "20px",
+  },
+  errorContainer: {
+    textAlign: "center",
+    marginTop: "20px",
+  },
+  card: {
+    backgroundColor: "#F2F2F2",
+    color: "#000000",
+    borderRadius: "8px",
+    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    padding: "10px",
+    minWidth: "340px",
+  },
+  gradientButton: {
+    background: "linear-gradient(to right, #A8C545, #B8D954)",
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    "&:hover": {
+      background: "linear-gradient(to right, #A8C545, #B8D954)",
+      filter: "brightness(1.05)",
+    },
+    "&.Mui-disabled": {
+      opacity: 0.5,
+      color: "#FFFFFF",
+    },
   },
 };
 

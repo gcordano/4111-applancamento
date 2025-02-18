@@ -2,12 +2,12 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button, Typography } from "@mui/material";
 
-// Pegando variáveis do .env
-const logoUrl = process.env.REACT_APP_LOGO_URL;
+const logoUrl = process.env.REACT_APP_LOGODARK_URL;
+const logoDarkUrl = process.env.REACT_APP_LOGO_URL;
 const logoutUrl = process.env.REACT_APP_LOGOUT_URL || "/";
 const filesUrl = process.env.REACT_APP_FILES_URL || "/files";
 
-function Header({ showTitle }) {
+function Header({ showTitle, isDarkMode }) {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -26,22 +26,44 @@ function Header({ showTitle }) {
     navigate(filesUrl);
   };
 
-  return (
-    <header style={styles.header}>
-      <a href={logoutUrl} style={styles.logoLink}>
-        <img src={logoUrl} alt="Logo" style={styles.logo} />
+  // Estilos dinâmicos de acordo com o tema
+  const headerStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "10px 20px",
+    backgroundColor: isDarkMode ? "#262626" : "#CCCCCC",
+    borderBottom: "1px solid",
+    borderBottomColor: isDarkMode ? "#444" : "#ddd",
+    marginBottom: "20px",
+  };
+
+  const logoStyle = {
+    height: "50px",
+    width: "auto",
+  };
+
+  const titleStyle = {
+    flexGrow: 1,
+    textAlign: "center",
+    color: isDarkMode ? "#FFFFFF" : "#000000",
+  };
+
+return (
+    <header style={headerStyle}>
+      <a href={logoutUrl} style={{ textDecoration: "none" }}>
+        {/* Altera a logo conforme o tema */}
+        <img src={isDarkMode ? logoDarkUrl : logoUrl} alt="Logo" style={logoStyle} />
       </a>
 
-      {/* Exibir título no centro somente no FileList */}
       {showTitle && isFileList && (
-        <Typography variant="h5" style={styles.title}>
+        <Typography variant="h5" style={titleStyle}>
           Saldos Contábeis Diários - Documento 4111
         </Typography>
       )}
 
-      {/* Se não estiver na tela de login, exibe os botões */}
       {!isLoginPage && (
-        <div style={styles.buttonContainer}>
+        <div style={{ display: "flex", alignItems: "center" }}>
           {isFileList ? (
             <Button variant="contained" color="error" onClick={handleLogout}>
               Logout
@@ -56,33 +78,4 @@ function Header({ showTitle }) {
     </header>
   );
 }
-
-const styles = {
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "10px 20px",
-    backgroundColor: "#32373c",
-    borderBottom: "1px solid #ddd",
-    marginBottom: "20px",
-  },
-  logoLink: {
-    textDecoration: "none",
-  },
-  logo: {
-    height: "50px",
-    width: "auto",
-  },
-  title: {
-    flexGrow: 1,
-    textAlign: "center",
-    color: "#FFFFFF",
-  },
-  buttonContainer: {
-    display: "flex",
-    alignItems: "center",
-  },
-};
-
 export default Header;
