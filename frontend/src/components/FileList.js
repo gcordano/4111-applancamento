@@ -74,7 +74,7 @@ function FileList() {
     }
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/src/Routes/movimentacao.php?route=delete&id=${id}`,
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=delete&id=${id}`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -100,7 +100,7 @@ function FileList() {
   const handleGenerateXML = async (id, fileName) => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/src/Routes/movimentacao.php?route=generateXML&id=${id}`,
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=generateXML&id=${id}`,
         {
           method: "GET",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -127,7 +127,7 @@ function FileList() {
 
       // O botão já está desabilitado se `transmitido` for true, então não precisa de validação
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/src/Routes/movimentacao.php?route=transmit`,
+        `${process.env.REACT_APP_API_URL}/src/routes/movimentacao.php?route=transmit`,
         {
           method: "POST",
           headers: {

@@ -47,7 +47,7 @@ function CreateFile() {
     calculateDataBase();
 
     // Carregar CNPJs e Contas
-    axios.get(`${apiUrl}/src/Routes/movimentacao.php?route=getCnpjsEContas`)
+    axios.get(`${apiUrl}/src/routes/movimentacao.php?route=getCnpjsEContas`)
       .then(response => {
         const groupedCnpjs = response.data.reduce((acc, item) => {
           let existingCnpj = acc.find(c => c.id === item.id);
@@ -99,7 +99,7 @@ function CreateFile() {
     };
 
     try {
-      const response = await axios.post(`${apiUrl}/src/Routes/movimentacao.php?route=create`, data, {
+      const response = await axios.post(`${apiUrl}/src/routes/movimentacao.php?route=create`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

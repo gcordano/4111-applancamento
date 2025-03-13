@@ -26,7 +26,7 @@ function EditFile() {
   useEffect(() => {
     const fetchFile = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/src/Routes/movimentacao.php?route=getFile&id=${id}`, {
+        const response = await axios.get(`${apiUrl}/src/routes/movimentacao.php?route=getFile&id=${id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
 
@@ -64,7 +64,7 @@ function EditFile() {
     };
   
     try {
-        await axios.put(`${apiUrl}/src/Routes/movimentacao.php?route=update&id=${id}`, data, {
+        await axios.put(`${apiUrl}/src/routes/movimentacao.php?route=update&id=${id}`, data, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
