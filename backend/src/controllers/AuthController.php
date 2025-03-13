@@ -1,7 +1,7 @@
 <?php
 namespace App\controllers;
 
-use App\Models\User;
+use App\models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Dotenv\Dotenv;
