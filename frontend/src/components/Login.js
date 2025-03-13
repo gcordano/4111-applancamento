@@ -77,7 +77,7 @@ function Login({ setIsAuthenticated }) {
 
 const styles = {
   container: {
-    backgroundColor: "#32373C",
+    backgroundColor: "#262626",
     color: "#FFFFFF",
     minHeight: "100vh",
     display: "flex",

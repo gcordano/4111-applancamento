@@ -186,46 +186,87 @@ function CreateFile() {
         </Typography>
 
         {contas.length === 2 && (
-          <>
-            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
-              <TextField
-                fullWidth
-                label="Conta 1"
-                value={contas[0].conta}
-                disabled
-                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled}
-              />
-              <TextField
-                fullWidth
-                type="number"
-                label="Saldo do Dia"
-                value={saldoDia1}
-                onChange={(e) => setSaldoDia1(e.target.value)}
-                required
-                sx={isDarkMode ? darkStyles.input : lightStyles.input}
-              />
-            </Box>
+  <>
+    <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
+      <TextField
+        fullWidth
+        label="Conta 1"
+        value={contas[0].conta}
+        disabled
+        sx={{
+          ...(isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled),
+          "& .MuiOutlinedInput-root": {
+            "&.Mui-focused fieldset": {
+              borderColor: isDarkMode ? "#FFFFFF" : "#000000",
+            },
+          },
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: isDarkMode ? "#FFFFFF" : "#000000",
+          },
+        }}
+      />
+      <TextField
+        fullWidth
+        type="number"
+        label="Saldo Acumulado"
+        value={saldoDia1}
+        onChange={(e) => setSaldoDia1(e.target.value)}
+        required
+        sx={{
+          ...(isDarkMode ? darkStyles.input : lightStyles.input),
+          "& .MuiOutlinedInput-root": {
+            "&.Mui-focused fieldset": {
+              borderColor: isDarkMode ? "#000000" : "#000000",
+            },
+          },
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: isDarkMode ? "#000000" : "#000000",
+          },
+        }}
+      />
+    </Box>
 
-            <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
-              <TextField
-                fullWidth
-                label="Conta 2"
-                value={contas[1].conta}
-                disabled
-                sx={isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled}
-              />
-              <TextField
-                fullWidth
-                type="number"
-                label="Saldo do Dia"
-                value={saldoDia2}
-                onChange={(e) => setSaldoDia2(e.target.value)}
-                required
-                sx={isDarkMode ? darkStyles.input : lightStyles.input}
-              />
-            </Box>
-          </>
-        )}
+    <Box sx={isDarkMode ? darkStyles.row : lightStyles.row}>
+      <TextField
+        fullWidth
+        label="Conta 2"
+        value={contas[1].conta}
+        disabled
+        sx={{
+          ...(isDarkMode ? darkStyles.inputDisabled : lightStyles.inputDisabled),
+          "& .MuiOutlinedInput-root": {
+            "&.Mui-focused fieldset": {
+              borderColor: isDarkMode ? "#000000" : "#000000",
+            },
+          },
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: isDarkMode ? "#000000" : "#000000",
+          },
+        }}
+      />
+      <TextField
+        fullWidth
+        type="number"
+        label="Saldo Atual"
+        value={saldoDia2}
+        onChange={(e) => setSaldoDia2(e.target.value)}
+        required
+        sx={{
+          ...(isDarkMode ? darkStyles.input : lightStyles.input),
+          "& .MuiOutlinedInput-root": {
+            "&.Mui-focused fieldset": {
+              borderColor: isDarkMode ? "#000000" : "#000000",
+            },
+          },
+          "& .MuiInputLabel-root.Mui-focused": {
+            color: isDarkMode ? "#000000" : "#000000",
+          },
+        }}
+      />
+    </Box>
+  </>
+)}
+
 
         <Button
           type="submit"
@@ -270,10 +311,10 @@ const darkStyles = {
   form: {
     maxWidth: "600px",
     margin: "0 auto",
-    backgroundColor: "#1C1C1C",
+    backgroundColor: "#333232",
     padding: "25px",
     borderRadius: "10px",
-    boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+    boxShadow: "0px 4px 6px rgba(116, 188, 107, 0.1)",
   },
   formGroup: {
     marginBottom: "15px",
@@ -309,7 +350,7 @@ const darkStyles = {
 // Estilos para o tema LIGHT
 const lightStyles = {
   container: {
-    backgroundColor: "#CCCCCC",
+    backgroundColor: "#B2B2B2",
     color: "#000000",
     minHeight: "100vh",
     padding: "20px",

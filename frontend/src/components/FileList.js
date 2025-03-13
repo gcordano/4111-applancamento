@@ -48,19 +48,24 @@ function FileList() {
     }
 
     fetchFiles()
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setFiles(data);
-        } else {
-          setFiles([]);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        setError("Erro ao carregar arquivos. Tente novamente.");
-        setLoading(false);
-      });
-  }, [navigate]);
+    .then((data) => {
+      console.log("Dados recebidos:", data);  // Verifique os dados aqui
+      if (Array.isArray(data)) {
+        const updatedFiles = data.map((file) => ({
+          ...file,
+          transmitido: file.transmitido === true, // Certifique-se de que está utilizando 'true' ou 'false' como booleanos
+        }));
+        setFiles(updatedFiles);
+      } else {
+        setFiles([]);
+      }
+      setLoading(false);
+    })
+    .catch((error) => {
+      setError("Erro ao carregar arquivos. Tente novamente.");
+      setLoading(false);
+    });
+}, [navigate]);
 
   // Funções de manipulação de arquivos
   const handleDelete = async (id) => {
@@ -118,6 +123,9 @@ function FileList() {
 
   const handleTransmit = async (id) => {
     try {
+      const file = files.find((file) => file.guid === id);
+
+      // O botão já está desabilitado se `transmitido` for true, então não precisa de validação
       const response = await fetch(
         `${process.env.REACT_APP_API_URL}/src/Routes/movimentacao.php?route=transmit`,
         {
@@ -129,19 +137,38 @@ function FileList() {
           body: JSON.stringify({ id }),
         }
       );
-      const result = await response.json();
-      if (result.transmitido) {
-        alert("Transmissão finalizada com sucesso!");
-        // Atualiza o estado para desabilitar o botão de transmissão para este arquivo
-        setFiles((prevFiles) =>
-          prevFiles.map((file) =>
-            file.guid === id ? { ...file, transmitido: true } : file
-          )
-        );
+
+      const contentType = response.headers.get("Content-Type");
+      const textResponse = await response.text();
+
+      console.log("Resposta do servidor:", textResponse);
+
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const jsonResponse = JSON.parse(textResponse);
+
+          if (jsonResponse.transmitido) {
+            alert(jsonResponse.message);
+
+            // Atualiza o estado para desabilitar o botão de transmissão para este arquivo
+            setFiles((prevFiles) =>
+              prevFiles.map((file) =>
+                file.guid === id ? { ...file, transmitido: true } : file
+              )
+            );
+          } else {
+            alert("Erro na transmissão: " + jsonResponse.message);
+          }
+        } catch (error) {
+          alert("Erro ao processar a resposta JSON: " + error.message);
+          console.log("Erro ao processar JSON:", error, textResponse);
+        }
       } else {
-        alert("Erro na transmissão: " + result.message);
+        alert("Erro: Resposta do servidor não é JSON.");
+        console.log("Resposta inesperada do servidor:", textResponse);
       }
     } catch (error) {
+      console.log(error);
       alert("Erro ao transmitir o arquivo. Tente novamente.");
     }
   };

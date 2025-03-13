@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<documento codigoDocumento="4111" cnpj="44478623" dataBase="2025-02-14" tipoRemessa="I">
+	<contas>
+		<conta codigoConta="3097000003" saldoDia="16076948.50"/>
+		<conta codigoConta="4193000009" saldoDia="1178468.17"/>
+	</contas>
+</documento>
