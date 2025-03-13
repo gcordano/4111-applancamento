@@ -1,6 +1,6 @@
 <?php
-namespace App\Models;
-use App\Services\Database;
+namespace App\models;
+use App\services\Database;
 
 class File {
     private $pdo;

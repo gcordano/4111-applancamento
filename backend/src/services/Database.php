@@ -1,5 +1,5 @@
 <?php
-namespace App\Services;
+namespace App\services;
 use PDO;
 use PDOException;
 use Dotenv\Dotenv;

@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use App\Controllers\MovimentacaoController;
-use App\Controllers\AuthController;
+use App\controllers\MovimentacaoController;
+use App\controllers\AuthController;
 
 // Ativando logs para depuração
 ini_set('display_errors', 1);

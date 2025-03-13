@@ -1,7 +1,7 @@
 <?php
-namespace App\Controllers;
+namespace App\controllers;
 
-use App\Services\Database;
+use App\services\Database;
 use PDO;
 
 class MovimentacaoController {

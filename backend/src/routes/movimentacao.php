@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use App\Controllers\MovimentacaoController;
+use App\controllers\MovimentacaoController;
 
 // Configuração de CORS
 header("Content-Type: application/json; charset=UTF-8");
