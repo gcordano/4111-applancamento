@@ -20,7 +20,8 @@ class MovimentacaoController {
                        TO_CHAR(m.data_movimento, 'YYYYMMDD') AS data_formatada, 
                        m.tipo_remessa,
                        m.data_movimento,  
-                       m.transmition
+                       m.transmition,
+                       m.aceite
                 FROM movimentacao m
                 JOIN contas c ON (m.id_conta_1 = c.guid OR m.id_conta_2 = c.guid)
                 JOIN cnpj ON c.id_cnpj = cnpj.id
@@ -41,7 +42,8 @@ class MovimentacaoController {
                     "cnpj" => $file["cnpj"],
                     "name" => "4111_" . $file["data_formatada"] . ".xml",
                     "tipo_remessa" => $file["tipo_remessa"],
-                    "transmitido" => (bool) $file["transmition"] // Garantindo que 'transmition' é tratado como booleano
+                    "transmitido" => (bool) $file["transmition"], // Garantindo que 'transmition' é tratado como booleano
+                    "aceite" => isset($file["aceite"]) ? (bool) $file["aceite"] : false
                 ];
             }, $result);
     
@@ -457,7 +459,7 @@ class MovimentacaoController {
             $fileName = "4111_" . $formattedDate . ".xml";
     
             // 5. Salva o XML no diretório desejado
-            $directory = '/Users/gustavo/Documents/GitHub/4111/frontend/';
+            $directory = $_ENV['API_DIR'];
             if (!is_dir($directory)) {
                 mkdir($directory, 0777, true);
             }
@@ -476,7 +478,7 @@ class MovimentacaoController {
             $staUrl = $_ENV['API_URL_PROTOCOLO'];
             $staUser = $_ENV['API_USER'];
             $staPass = $_ENV['API_PASSWORD'];
-            $staObs  = $_ENV['STA_OBSERVACAO'] ?? 'Teste de envio';
+            $staObs  = $_ENV['STA_OBSERVACAO'] ?? 'envio 4111';
             $auth = base64_encode($staUser . ':' . $staPass);
 
             // 8. Abertura do Protocolo – monta os parâmetros
@@ -522,6 +524,8 @@ class MovimentacaoController {
                 return;
             }
             $protocolo = (string)$xmlResponse->Protocolo;
+            // Nova etapa: salva o número do protocolo no banco de dados
+            $this->updateProtocol($id, $protocolo);
     
             // 10. Envio do arquivo XML – chamada PUT
             $putUrl = $staUrl . '/' . $protocolo . '/conteudo';
@@ -582,7 +586,9 @@ class MovimentacaoController {
             if (strpos($situacao, 'Transmissão finalizada') !== false) {
                 // Atualiza o status da transmissão no banco de dados para 'enable'
                 $this->updateTransmissionStatus($id);
+                
                 echo json_encode(["message" => "finalizada com sucesso!", "transmitido" => true]);
+                //$this->saveFileContent($fileName, $xmlString);
             } else {
                 echo json_encode(["message" => "Erro na transmissão: " . $situacao, "transmitido" => false]);
             }
@@ -604,6 +610,72 @@ private function updateTransmissionStatus($id) {
         http_response_code(500);
     }
 }
+
+private function updateProtocol($id, $protocol) {
+    $stmt = $this->pdo->prepare("UPDATE movimentacao SET protocolo = :protocol WHERE guid = :id");
+    $stmt->bindValue(':protocol', $protocol);
+    $stmt->bindValue(':id', $id);
+    $stmt->execute();
+}
+
+// Função fictícia para salvar o conteúdo do arquivo na tabela files  [XML]]
+// private function saveFileContent($fileName, $xmlString) {
+//     $xml = simplexml_load_string($xmlString);
+//     if ($xml === false) {
+//         throw new Exception("Erro ao validar XML");
+//     }
+//     $dom = new \DOMDocument('1.0', 'utf-8');
+//     $dom->preserveWhiteSpace = false;
+//     $dom->formatOutput = true;
+
+//     // Carrega o conteúdo do XML em DOMDocument
+//     $dom->loadXML($xmlString);
+
+//     // Converte o conteúdo para uma string
+//     $xmlString = $dom->saveXML();
+//     // Insere no banco de dados
+//     $xmlString = preg_replace('/\s+/', ' ', $xmlString);
+//     $stmt = $this->pdo->prepare("INSERT INTO files (file_name, file_content, created_at, updated_at) VALUES (:fileName, :xmlString, NOW(), NOW())");
+    
+//     // Binding dos parâmetros
+    
+//     $stmt->bindParam(':fileName', $fileName);
+//     $stmt->bindParam(':xmlString', $xmlString);
+//     return $stmt->execute();
+// }
+
+// private function saveFileContent($fileName, $xmlString) {
+//     // Verifica se o XML é válido
+//     $xml = simplexml_load_string($xmlString);
+//     if ($xml === false) {
+//         throw new Exception("Erro ao validar XML");
+//     }
+
+//     // Converte o XML para uma string
+//     $dom = new \DOMDocument('1.0', 'utf-8');
+//     $dom->preserveWhiteSpace = false;
+//     $dom->formatOutput = true;
+    
+//     // Carrega o XML em DOMDocument
+//     $dom->loadXML($xmlString);
+
+//     // Converte o conteúdo para uma string
+//     $xmlContent = $dom->saveXML();
+    
+//     // Agora vamos embalar o conteúdo XML dentro de um JSON
+//     $jsonData = json_encode(['xml_content' => $xmlContent]);
+
+//     // Insere o JSON no banco de dados
+//     $stmt = $this->pdo->prepare("INSERT INTO files (file_name, file_content, created_at, updated_at) VALUES (:fileName, :fileContent, NOW(), NOW())");
+    
+//     // Binding dos parâmetros
+//     $stmt->bindParam(':fileName', $fileName);
+//     $stmt->bindParam(':fileContent', $jsonData);  // Salva o JSON com o XML dentro
+    
+//     // Executa a inserção no banco de dados
+//     return $stmt->execute();
+// }
+
 
 }
 ?>

@@ -11,7 +11,7 @@ import {
   Box,
   Stack,
   CircularProgress,
-  IconButton
+  IconButton,
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 
@@ -49,11 +49,11 @@ function FileList() {
 
     fetchFiles()
     .then((data) => {
-      console.log("Dados recebidos:", data);  // Verifique os dados aqui
       if (Array.isArray(data)) {
         const updatedFiles = data.map((file) => ({
           ...file,
-          transmitido: file.transmitido === true, // Certifique-se de que está utilizando 'true' ou 'false' como booleanos
+          transmitido: file.transmitido === true,
+          aceite: file.aceite === true // Adicionamos o campo aceite
         }));
         setFiles(updatedFiles);
       } else {
@@ -65,7 +65,7 @@ function FileList() {
       setError("Erro ao carregar arquivos. Tente novamente.");
       setLoading(false);
     });
-}, [navigate]);
+  }, [navigate]);
 
   // Funções de manipulação de arquivos
   const handleDelete = async (id) => {
@@ -122,8 +122,11 @@ function FileList() {
   };
 
   const handleTransmit = async (id) => {
+    if (!window.confirm("Tem certeza que deseja transmitir o arquivo?")) {
+      return;
+    }
     try {
-      const file = files.find((file) => file.guid === id);
+      //const file = files.find((file) => file.guid === id);
 
       // O botão já está desabilitado se `transmitido` for true, então não precisa de validação
       const response = await fetch(
@@ -153,7 +156,7 @@ function FileList() {
             // Atualiza o estado para desabilitar o botão de transmissão para este arquivo
             setFiles((prevFiles) =>
               prevFiles.map((file) =>
-                file.guid === id ? { ...file, transmitido: true } : file
+                file.guid === id ? { ...file, transmitido: true, aceite: false } : file
               )
             );
           } else {
@@ -170,6 +173,40 @@ function FileList() {
     } catch (error) {
       console.log(error);
       alert("Erro ao transmitir o arquivo. Tente novamente.");
+    }
+  };
+  const renderTransmitButton = (file) => {
+    if (file.aceite) {
+      return (
+        <Button
+          sx={isDarkMode ? darkStyles.acceptedButton : lightStyles.acceptedButton}
+          size="small"
+          disabled
+          startIcon={<span style={{fontSize: '1.2em'}}>✓</span>} // Símbolo de checkmark
+        >
+          Aceito
+        </Button>
+      );
+    } else if (file.transmitido) {
+      return (
+        <Button
+          sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
+          size="small"
+          disabled
+        >
+          Transmitido
+        </Button>
+      );
+    } else {
+      return (
+        <Button
+          sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
+          size="small"
+          onClick={() => handleTransmit(file.guid)}
+        >
+          Transmitir
+        </Button>
+      );
     }
   };
 
@@ -247,14 +284,7 @@ function FileList() {
                   >
                     XML
                   </Button>
-                  <Button
-                    sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
-                    size="small"
-                    onClick={() => handleTransmit(file.guid)}
-                    disabled={file.transmitido}
-                  >
-                    Transmitir
-                  </Button>
+                  {renderTransmitButton(file)}
                   <Button
                     sx={isDarkMode ? darkStyles.gradientButton : lightStyles.gradientButton}
                     size="small"
@@ -329,9 +359,25 @@ const darkStyles = {
       color: "#FFFFFF",
     },
   },
+  disabledButton: {
+    background: "rgba(255, 255, 255, 0.12)",
+    color: "rgba(255, 255, 255, 0.5)",
+    fontWeight: "bold",
+    "&.Mui-disabled": {
+      color: "rgba(255, 255, 255, 0.5)",
+    },
+  },
+  acceptedButton: {
+    background: "linear-gradient(to right, #A8C545, #B8D954)",
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    "&.Mui-disabled": {
+      opacity: 1,
+      color: "#FFFFFF",
+    },
+  },
 };
 
-// Estilos para o tema WHITE
 const lightStyles = {
   container: {
     backgroundColor: "#CCCCCC",
@@ -374,6 +420,24 @@ const lightStyles = {
       color: "#FFFFFF",
     },
   },
+  disabledButton: {
+    background: "rgba(0, 0, 0, 0.12)",
+    color: "rgba(0, 0, 0, 0.5)",
+    fontWeight: "bold",
+    "&.Mui-disabled": {
+      color: "rgba(0, 0, 0, 0.5)",
+    },
+  },
+  acceptedButton: {
+    background: "linear-gradient(to right, #A8C545, #B8D954)",
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    "&.Mui-disabled": {
+      opacity: 1,
+      color: "#FFFFFF",
+    },
+  },
 };
+
 
 export default FileList;
